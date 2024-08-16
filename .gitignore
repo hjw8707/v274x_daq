@@ -1,0 +1,42 @@
+# 컴파일된 바이너리 및 객체 파일
+*.o
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+
+# CMake 빌드 디렉토리
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# IDE 및 편집기 관련 파일
+.vscode/
+.idea/
+*.swp
+*~
+
+# 운영 체제 관련 파일
+.DS_Store
+Thumbs.db
+
+# 로그 파일
+*.log
+
+# 임시 파일
+*.tmp
+*.bak
+
+# 의존성 디렉토리
+/vendor/
+/node_modules/
+
+# 환경 설정 파일
+.env
+
+# 기타 프로젝트 특정 파일
+config.ini
+secrets.json
