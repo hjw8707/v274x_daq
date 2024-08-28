@@ -6,6 +6,8 @@
 
 #include <string>
 
+#include "v2740par.hxx"
+
 class CAENV2740 {
    private:
     uint64_t handle;  // int에서 uint64_t로 변경
@@ -15,6 +17,8 @@ class CAENV2740 {
     CAENV2740(const std::string& connString);
     ~CAENV2740();
 
+    inline uint64_t getHandle() { return handle; }
+
     void connect();
     void configure();
 
@@ -22,8 +26,53 @@ class CAENV2740 {
     void reboot();
     void clear();
 
+    void armAcquisition();
+    void disarmAcquisition();
+
     void startAcquisition();
     void stopAcquisition();
+
+    void sendSWTrigger();
+    void sendChSWTrigger(int channel);
+
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    // Parameter treatment
+    void loadParameter(const CAENV2740Par& par);
+    void parameterParsing(const std::string& key, const YAML::Node& node, int channel = -1);
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Print Information
+    void printDigitizerInfo();
+    void printLicenseInfo();
+    void printSpecInfo();
+    void printNetworkInfo();
+
+    void printClockInfo();
+    void printTriggerSourceInfo();
+    void printPanelIOInfo();
+
+    void printWaveParamInfo();
+    void printWaveProbeInfo();
+    void printRawDataInfo();
+
+    void printCounterInfo();
+    void printITLInfo(int option = 3);  // option = 1: ITLA, 2: ITLB, 3: ITLA + ITLB
+    void printLVDSInfo();
+    void printPanelDACInfo();
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // About Data Access
+    std::string readActiveEndPoint();
+    void writeActiveEndPoint(std::string endPoint);  // endPoint = "RAW", "DPPPSD", "DPPPHA"
+
+    void setDataFormatRaw();
+    void setDataFormatDPPPSD();
+    void setDataFormatDPPPHA();
+    void setDataFormatDPPPSDStat();
+    void setDataFormatDPPPHAStat();
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     uint32_t readRegister(const std::string& registerPath);
     float readRegisterInFloat(const std::string& registerPath);
@@ -118,7 +167,8 @@ class CAENV2740 {
     void writeBoardVetoPolarity(std::string polarity);  // polarity = "ActiveLow", "ActiveHigh"
     std::string readChannelVetoSource(int channel);
     void writeChannelVetoSource(
-        int channel, std::string source);  // source = "Disabled", "SIN", "GPIO", "LVDS", "P0", "EncodedClkIn"
+        int channel,
+        std::string source);  // source = "Disabled", "BoardVeto", "ADCOverSaturation", "ADCUnderSaturation"
     uint32_t readChannelVetoWidth(int channel);
     void writeChannelVetoWidth(int channel, uint32_t width);  // increament = 8 [ns]
 
@@ -148,8 +198,8 @@ class CAENV2740 {
     void writeChRecordLengthT(int channel, uint32_t length);
 
     std::string readWaveDownSamplingFactor(int channel);
-    void writeWaveDownSamplingFactor(int channel, std::string factor);  // factor = "1", "2", "4", "8"
-    std::string readWaveAnalogProbe(int num, int channel);              // num = 0, 1
+    void writeWaveDownSamplingFactor(int channel, int factor);  // factor = "1", "2", "4", "8"
+    std::string readWaveAnalogProbe(int num, int channel);      // num = 0, 1
     void writeWaveAnalogProbe(int num, int channel,
                               std::string probe);            // probe = "ADCInput", "ADCInputBaseline", "CFDFilter"
     std::string readWaveDigitalProbe(int num, int channel);  // num = 0, 1, 2, 3
@@ -210,16 +260,16 @@ class CAENV2740 {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Individual Trigger 관련
-    std::string readITLXMainLogic(bool isA = true);              // isA = true: ITLA, false: ITLB
-    void writeITLXMainLogic(bool isA, std::string logic);        // logic = "AND", "OR", "Majority"
-    uint32_t readITLXMajorityLev(bool isA = true);               // isA = true: ITLA, false: ITLB
-    void writeITLXMajorityLev(bool isA, uint32_t level);         // level = 0 ~ 15
-    std::string readITLXPairLogic(bool isA = true);              // isA = true: ITLA, false: ITLB
-    void writeITLXPairLogic(bool isA, std::string logic);        // logic = "AND", "OR", "NONE"
-    std::string readITLXPairPolarity(bool isA = true);           // isA = true: ITLA, false: ITLB
-    void writeITLXPairPolarity(bool isA, std::string polarity);  // polarity = "Direct", "Inverted"
-    std::string readITLXMask(bool isA = true);                   // isA = true: ITLA, false: ITLB
-    void writeITLXMask(bool isA, uint32_t mask);                 // mask = 0 ~ 15
+    std::string readITLXMainLogic(bool isA = true);          // isA = true: ITLA, false: ITLB
+    void writeITLXMainLogic(bool isA, std::string logic);    // logic = "AND", "OR", "Majority"
+    uint32_t readITLXMajorityLev(bool isA = true);           // isA = true: ITLA, false: ITLB
+    void writeITLXMajorityLev(bool isA, uint32_t level);     // level = 0 ~ 15
+    std::string readITLXPairLogic(bool isA = true);          // isA = true: ITLA, false: ITLB
+    void writeITLXPairLogic(bool isA, std::string logic);    // logic = "AND", "OR", "NONE"
+    std::string readITLXPolarity(bool isA = true);           // isA = true: ITLA, false: ITLB
+    void writeITLXPolarity(bool isA, std::string polarity);  // polarity = "Direct", "Inverted"
+    uint32_t readITLXMask(bool isA = true);                  // isA = true: ITLA, false: ITLB
+    void writeITLXMask(bool isA, uint32_t mask);             // mask = 0 ~ 15
     std::string readITLConnect(int channel);
     void writeITLConnect(int channel, std::string connect);  // connect = "Disabled", "ITLA", "ITLB"
     uint32_t readITLXGateWidth(bool isA = true);             // isA = true: ITLA, false: ITLB
@@ -284,17 +334,17 @@ class CAENV2740 {
     std::string readWaveSelector(int channel);
     void writeWaveSelector(int channel, std::string selector);  // selector = "All", "PileUp", "EnergySkim"
     std::string readEventNeutronReject(int channel);
-    void writeEventNeutronReject(int channel, std::string reject);  // reject = "Disabled", "Enabled"
+    void writeEventNeutronReject(int channel, bool reject);  // reject = "Disabled", "Enabled"
     std::string readWaveNeutronReject(int channel);
-    void writeWaveNeutronReject(int channel, std::string reject);  // reject = "Disabled", "Enabled"
+    void writeWaveNeutronReject(int channel, bool reject);  // reject = "Disabled", "Enabled"
     std::string readCoincidenceMask(int channel);
     void writeCoincidenceMask(
         int channel,
-        uint32_t mask);  // mask = "Disabled", "Ch64Trigger", "TRGIN", "GlobalTriggerSource", "ITLA", "ITLB"
+        std::string mask);  // mask = "Disabled", "Ch64Trigger", "TRGIN", "GlobalTriggerSource", "ITLA", "ITLB"
     std::string readAntiCoincidenceMask(int channel);
     void writeAntiCoincidenceMask(
         int channel,
-        uint32_t mask);  // mask = "Disabled", "Ch64Trigger", "TRGIN", "GlobalTriggerSource", "ITLA", "ITLB"
+        std::string mask);  // mask = "Disabled", "Ch64Trigger", "TRGIN", "GlobalTriggerSource", "ITLA", "ITLB"
     uint32_t readCoincidenceLength(int channel, bool isSample = true);
     void writeCoincidenceLength(int channel, uint32_t length, bool isSample = true);  // length = 1 [Sample]
     uint32_t readCoincidenceLengthS(int channel);
@@ -304,13 +354,13 @@ class CAENV2740 {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // DPP Algorithm 관련
+    // DPP Algorithm 관련 (DPPPSD)
     uint32_t readSmoothingFactor(int channel);
     void writeSmoothingFactor(int channel, uint32_t factor);  // factor = 1, 2, 4, 8, 16
     std::string readChargeSmoothing(int channel);
-    void writeChargeSmoothing(int channel, std::string smoothing);  // smoothing = "Disabled", "Enabled"
+    void writeChargeSmoothing(int channel, bool smoothing);  // smoothing = "Disabled", "Enabled"
     std::string readTimeFilterSmoothing(int channel);
-    void writeTimeFilterSmoothing(int channel, std::string smoothing);  // smoothing = "Disabled", "Enabled"
+    void writeTimeFilterSmoothing(int channel, bool smoothing);  // smoothing = "Disabled", "Enabled"
     uint32_t readTimeFilterRetriggerGuard(int channel,
                                           bool isSample = true);  // isSample = true: 샘플 수, false: 시간 [ns]
     void writeTimeFilterRetriggerGuard(int channel, uint32_t guard,
@@ -320,8 +370,8 @@ class CAENV2740 {
     uint32_t readTimeFilterRetriggerGuardT(int channel);
     void writeTimeFilterRetriggerGuardT(int channel, uint32_t guard);  // increment = 8 [ns]
     std::string readTriggerHysteresis(int channel);
-    void writeTriggerHysteresis(int channel, std::string hysteresis);  // hysteresis = "Disabled", "Enabled"
-    uint32_t readCFDDelay(int channel, bool isSample = true);  // isSample = true: 샘플 수, false: 시간 [ns]
+    void writeTriggerHysteresis(int channel, bool hysteresis);  // hysteresis = "Disabled", "Enabled"
+    uint32_t readCFDDelay(int channel, bool isSample = true);   // isSample = true: 샘플 수, false: 시간 [ns]
     void writeCFDDelay(int channel, uint32_t delay,
                        bool isSample = true);  // isSample = true: 샘플 수, false: 시간 [ns]
     uint32_t readCFDDelayS(int channel);
@@ -373,13 +423,72 @@ class CAENV2740 {
     uint32_t readShortChargeIntegratorPedestal(int channel);
     void writeShortChargeIntegratorPedestal(int channel, uint32_t pedestal);  // increment = 1 [ADC]
     std::string readEnergyGain(int channel);
-    void writeEnergyGain(int channel, std::string gain);  // gain = "x1", "x4", "x16", "x64", "x256"
+    void writeEnergyGain(int channel, int gain);  // gain = 1, 4, 16, 64, 256
     uint32_t readNeutronThreshold(int channel);
     void writeNeutronThreshold(int channel, uint32_t threshold);  // increment = 1 [ADC]
     std::string readEnDataReduction();
     void writeEnDataReduction(bool reduction);  // reduction = "True", "False"
     std::string readEnStatEvents();
     void writeEnStatEvents(bool events);  // events = "True", "False"
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // DPP Algorithm 관련 (additional for DPPPHA)
+    uint32_t readTimeFilterRiseTime(int channel, bool isSample = true);
+    void writeTimeFilterRiseTime(int channel, uint32_t riseTime, bool isSample = true);
+    uint32_t readTimeFilterRiseTimeS(int channel);
+    void writeTimeFilterRiseTimeS(int channel, uint32_t riseTime);
+    uint32_t readTimeFilterRiseTimeT(int channel);
+    void writeTimeFilterRiseTimeT(int channel, uint32_t riseTime);
+
+    uint32_t readEnergyFilterRiseTime(int channel, bool isSample = true);
+    void writeEnergyFilterRiseTime(int channel, uint32_t riseTime, bool isSample = true);
+    uint32_t readEnergyFilterRiseTimeS(int channel);
+    void writeEnergyFilterRiseTimeS(int channel, uint32_t riseTime);
+    uint32_t readEnergyFilterRiseTimeT(int channel);
+    void writeEnergyFilterRiseTimeT(int channel, uint32_t riseTime);
+
+    uint32_t readEnergyFilterFlatTop(int channel, bool isSample = true);
+    void writeEnergyFilterFlatTop(int channel, uint32_t flatTop, bool isSample = true);
+    uint32_t readEnergyFilterFlatTopS(int channel);
+    void writeEnergyFilterFlatTopS(int channel, uint32_t flatTop);
+    uint32_t readEnergyFilterFlatTopT(int channel);
+    void writeEnergyFilterFlatTopT(int channel, uint32_t flatTop);
+
+    uint32_t readEnergyFilterPeakingPosition(int channel);
+    void writeEnergyFilterPeakingPosition(int channel, uint32_t position);  // [%]
+    std::string readEnergyFilterPeakingAvg(int channel);
+    void writeEnergyFilterPeakingAvg(int channel,
+                                     std::string avg);  // avg = "OneShot", "LowAVG", "MediumAVG", "HighAVG"
+
+    uint32_t readEnergyFilterPoleZero(int channel, bool isSample = true);
+    void writeEnergyFilterPoleZero(int channel, uint32_t poleZero, bool isSample = true);
+    uint32_t readEnergyFilterPoleZeroS(int channel);
+    void writeEnergyFilterPoleZeroS(int channel, uint32_t poleZero);
+    uint32_t readEnergyFilterPoleZeroT(int channel);
+    void writeEnergyFilterPoleZeroT(int channel, uint32_t poleZero);
+
+    float readEnergyFilterFineGain(int channel);
+    void writeEnergyFilterFineGain(int channel, float gain);  // increment = 0.001
+    bool readEnergyFilterLFLimitation(int channel);
+    void writeEnergyFilterLFLimitation(int channel, bool limitation);  // limitation = "On", "Off"
+    std::string readEnergyFilterBaselineAvg(int channel);
+    void writeEnergyFilterBaselineAvg(
+        int channel, std::string avg);  // avg = "Fixed", "VeryLow", "Low", "MediumLow", "Medium", "MediumHigh", "High"
+
+    uint32_t readEnergyFilterBaselineGuard(int channel, bool isSample = true);
+    void writeEnergyFilterBaselineGuard(int channel, uint32_t guard, bool isSample = true);
+    uint32_t readEnergyFilterBaselineGuardS(int channel);
+    void writeEnergyFilterBaselineGuardS(int channel, uint32_t guard);
+    uint32_t readEnergyFilterBaselineGuardT(int channel);
+    void writeEnergyFilterBaselineGuardT(int channel, uint32_t guard);
+
+    uint32_t readEnergyFilterPileupGuard(int channel, bool isSample = true);
+    void writeEnergyFilterPileupGuard(int channel, uint32_t guard, bool isSample = true);
+    uint32_t readEnergyFilterPileupGuardS(int channel);
+    void writeEnergyFilterPileupGuardS(int channel, uint32_t guard);
+    uint32_t readEnergyFilterPileupGuardT(int channel);
+    void writeEnergyFilterPileupGuardT(int channel, uint32_t guard);
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 };
 
