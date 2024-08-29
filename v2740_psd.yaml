@@ -1,20 +1,20 @@
 channel_setting: &channel_setting
   trigger:
-    wave_trigger_source: trgin # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
-    event_trigger_source: trgin # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
-    channels_trigger_mask: 0xffff # 0x0000 ~ 0xffff
+    wave_trigger_source: disabled # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
+    event_trigger_source: globaltriggersource|chselftrigger # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
+    channels_trigger_mask: 0x0 # 0x0000 ~ 0xffff
     wave_saving: always # "Always", "OnRequest"
     veto_source: disabled # "Disabled", "BoardVeto", "ADCOverSaturation", "ADCUnderSaturation"
     veto_width: 0 # [ns]
   waveform:
-    record_length: 1000 # [ns]
+    record_length: 20000 # [ns]
     downsampling_factor: 1 # 1, 2, 4, 8
-    analog_probe: [adcinput, adcinput] # "ADCInput", "ADCInputBaseline", "CFDFilter"
+    analog_probe: [adcinput, cfdfilter] # "ADCInput", "ADCInputBaseline", "CFDFilter"
     digital_probe:
-      [trigger, trigger, trigger, trigger] #"Trigger", "CFDFilterArmed", "ReTriggerGuard", "ADCInputBaselineFreeze",
+      [trigger, longgate, shortgate, chargeready] #"Trigger", "CFDFilterArmed", "ReTriggerGuard", "ADCInputBaselineFreeze",
       # "ADCinputOverthreshold", "ChargeReady", "LongGate" "PileUpTrigger", "ShortGate",
       # "ChargeOverRange", "ADCSaturation", "ADCInputNegativeOverThreshold"
-    pre_trigger: 0 # [ns]
+    pre_trigger: 496 # [ns]
     wave_data_source:
       adc_data #"ADC_DATA", "ADC_TEST_TOGGLE", "ADC_TEST_RAMP",
       #"ADC_TEST_SIN", "ADC_TEST_PRBS", "Ramp", "IPE", "SquareWave"
@@ -24,12 +24,12 @@ channel_setting: &channel_setting
     self_trig_width: 20 # [ns]
     enable: true # true, false
     dc_offset: 50 # [%]
-    signal_offset: 50 # [uV]
-    trig_threshold: 50 # [ADC counts]
+    signal_offset: 0 # [uV]
+    trig_threshold: 350 # [ADC counts]
     pulse_polarity: positive # "Positive", "Negative"
   event:
     energy_skim_low_discriminator: 0 # [bin]
-    energy_skim_high_discriminator: 0 # [bin]
+    energy_skim_high_discriminator: 65535 # [bin]
     event_selector: all # "All", "PileUp", "EnergySkim"
     wave_selector: all # "All", "PileUp", "EnergySkim"
     event_neutron_reject: true # true, false
@@ -41,19 +41,19 @@ channel_setting: &channel_setting
     timefilter_retrigger_guard: 0 # [ns]
   dpppsd:
     smoothing_factor: 1 # 1, 2, 4, 8, 16
-    charge_smoothing: true # true, false
-    timefilter_smoothing: true # true, false
+    charge_smoothing: false # true, false
+    timefilter_smoothing: false # true, false
     trigger_hysteresis: true # true, false
-    cfd_delay: 0 # [ns]
+    cfd_delay: 32 # [ns]
     cfd_fraction: 25 # 25, 50, 75, 100%
     trigger_filter: leadingedge # "LeadingEdge", "CFD"
-    adcinput_baseline_avg: fixed # "Fixed", "Low", "MediumLow", "MediumHigh", "High"
+    adcinput_baseline_avg: mediumhigh # "Fixed", "Low", "MediumLow", "MediumHigh", "High"
     adcinput_baseline_guard: 0 # [ns]
     pileup_gap: 0 # [ADC counts]
-    abs_baseline: 0 # [ADC counts]
+    abs_baseline: 1000 # [ADC counts]
     gate_offset: 0 # [ns]
-    gate_long_length: 0 # [ns]
-    gate_short_length: 0 # [ns]
+    gate_long_length: 9000 # [ns]
+    gate_short_length: 4000 # [ns]
     long_charge_integ_ped: 0 # [ADC counts]
     short_charge_integ_ped: 0 # [ADC counts]
     energy_gain: 1 # 1, 4, 16, 64, 256
@@ -64,14 +64,14 @@ global:
   clock_source: internal # 'internal', 'FPClkIn'
   en_clockoutfp: true # true, false
   trigger:
-    start_source: [swcmd, lvds] #EncodedClkIn", "SINlevel", "SINedge", "SWcmd", "LVDS", "P0"
-    global_trigger_source: [trgin] # "TrgIn", "P0", "SwTrg", "LVDS", "ITLA", "ITLB", "ITLA_AND_ITLB", "ITLA_OR_ITLB", "EncodedClkIn", "GPIO", "TestPulse", "UserTrg"
+    start_source: [swcmd] #EncodedClkIn", "SINlevel", "SINedge", "SWcmd", "LVDS", "P0"
+    global_trigger_source: [trgin|swtrg] # "TrgIn", "P0", "SwTrg", "LVDS", "ITLA", "ITLB", "ITLA_AND_ITLB", "ITLA_OR_ITLB", "EncodedClkIn", "GPIO", "TestPulse", "UserTrg"
     trgout_mode:
       trgin # "Disabled", "TrgIn", "P0", "SwTrg", "LVDS", "ITLA", "ITLB", "ITLA_AND_ITLB",
       # "ITLA_OR_ITLB", "EncodedClkIn", "RUN", "RefClk", "TestPulse", "Busy", "UserTrgout",
       #"Fixed0", "Fixed1", "SyncIn", "SIN", "GPIO", "LBinClk", "AcceptTrg", "TrgClk"
     gpio_mode:
-      disabled # "Disabled", "TrgIn", "P0", "SIN", "LVDS", "ITLA", "ITLB",
+      sin # "Disabled", "TrgIn", "P0", "SIN", "LVDS", "ITLA", "ITLB",
       #"ITLA_AND_ITLB", "ITLA_OR_ITLB", "EncodedClkIn", "SWTrg", "Run", "RefClk",
       #"TestPulse", "Busy", "UserGPO", "Fixed0", "Fixed1"
     busyin_source: sin # "Disabled", "SIN", "GPIO", "LVDS"
@@ -81,8 +81,8 @@ global:
     veto_polarity: activehigh # "ActiveLow", "ActiveHigh"
     run_delay: 0 # [ns]
     auto_disarm_acq: true # true, false
-    volatile_clkout_delay: 0 # [ps]
-    permanent_clkout_delay: 0 # [ps]
+    volatile_clkout_delay: -2592.5925925925926 # [ps]
+    permanent_clkout_delay: -2592.5925925925926 # [ps]
   testpulse:
     tp_period: 1000 # [ns]
     tp_width: 100 # [ns]
@@ -93,23 +93,23 @@ global:
     errorflag_mask: 0x0000 # 0x0000 ~ 0xffff
     errorflag_data_mask: 0x0000 # 0x0000 ~ 0xffff
   itla:
-    itla_main_logic: and # "OR", "AND", "Majority"
-    itla_majority_level: 1
-    itla_pair_logic: and # "OR", "AND", "None"
+    itla_main_logic: or # "OR", "AND", "Majority"
+    itla_majority_level: 2
+    itla_pair_logic: none # "OR", "AND", "None"
     itla_polarity: direct # "Inverted", "Direct"
     itla_mask: 0x0000 # 0x0000 ~ 0xffff
     itla_gate_width: 0 # [ns]
   itlb:
-    itlb_main_logic: and # "OR", "AND", "Majority"
-    itlb_majority_level: 1
-    itlb_pair_logic: and # "OR", "AND", "None"
+    itlb_main_logic: or # "OR", "AND", "Majority"
+    itlb_majority_level: 2
+    itlb_pair_logic: none # "OR", "AND", "None"
     itlb_polarity: direct # "Inverted", "Direct"
     itlb_mask: 0x0000 # 0x0000 ~ 0xffff
     itlb_gate_width: 0 # [ns]
   lvds:
     lvds_mode: [selftriggers, selftriggers, selftriggers, selftriggers] # "SelfTriggers", "Sync", "IORegister", "User"
     lvds_direction: [input, input, input, input] # "Input", "Outpu"
-    lvds_trg_mask: 0xFFFF # 0x0000 ~ 0xffff
+    #lvds_trg_mask: 0xFFFF # 0x0000 ~ 0xffff
   dacout:
     dacout_mode:
       static # "Static", "Ramp", "Sin5MHz", "Square", "IPE", "ChInput",

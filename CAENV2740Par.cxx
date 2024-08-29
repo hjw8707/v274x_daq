@@ -1,4 +1,4 @@
-#include "v2740par.hxx"
+#include "CAENV2740par.hxx"
 
 #include <yaml-cpp/yaml.h>
 

@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "v2740par.hxx"
+#include "CAENV2740Par.hxx"
 
 class CAENV2740 {
    private:
@@ -61,6 +61,10 @@ class CAENV2740 {
     void printLVDSInfo();
     void printPanelDACInfo();
 
+    void printInputInfo();
+    void printEventInfo();
+
+    void printDPPPSDInfo();
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // About Data Access
@@ -181,10 +185,10 @@ class CAENV2740 {
     uint32_t readAcquisitionStatus();
     uint32_t readLEDStatus();
 
-    uint32_t readVolatileClockOutDelay();
-    void writeVolatileClockOutDelay(uint32_t delay);  // increment = 74.07407407407408 [ps]
-    uint32_t readPermanentClockOutDelay();
-    void writePermanentClockOutDelay(uint32_t delay);  // increment = 74.07407407407408 [ps]
+    float readVolatileClockOutDelay();
+    void writeVolatileClockOutDelay(float delay);  // increment = 74.07407407407408 [ps]
+    float readPermanentClockOutDelay();
+    void writePermanentClockOutDelay(float delay);  // increment = 74.07407407407408 [ps]
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

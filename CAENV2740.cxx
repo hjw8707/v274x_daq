@@ -1,5 +1,5 @@
 // CAENV2740.cpp
-#include "v2740.hxx"
+#include "CAENV2740.hxx"
 
 #include <iostream>
 #include <stdexcept>
@@ -189,12 +189,12 @@ void CAENV2740::parameterParsing(const std::string& key, const YAML::Node& node,
             std::cout << "키: " << key << ", 값: " << node.as<bool>() << std::endl;
             break;
         case HashCode("volatile_clkout_delay"):
-            writeVolatileClockOutDelay(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            writeVolatileClockOutDelay(node.as<float>());
+            std::cout << "키: " << key << ", 값: " << node.as<float>() << std::endl;
             break;
         case HashCode("permanent_clkout_delay"):
-            writePermanentClockOutDelay(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            writePermanentClockOutDelay(node.as<float>());
+            std::cout << "키: " << key << ", 값: " << node.as<float>() << std::endl;
             break;
         case HashCode("tp_period"):
             writeTestPulsePeriod(node.as<uint32_t>());
@@ -363,7 +363,7 @@ void CAENV2740::parameterParsing(const std::string& key, const YAML::Node& node,
         case HashCode("analog_probe"):
             std::cout << "채널: " << channel << ", 키: " << key << ", 값: ";
             for (const auto& it : node) {
-                writeWaveAnalogProbe(channel, i++, it.as<std::string>());
+                writeWaveAnalogProbe(i++, channel, it.as<std::string>());
                 std::cout << it.as<std::string>() << " ";
             }
             std::cout << std::endl;
@@ -371,7 +371,7 @@ void CAENV2740::parameterParsing(const std::string& key, const YAML::Node& node,
         case HashCode("digital_probe"):
             std::cout << "채널: " << channel << ", 키: " << key << ", 값: ";
             for (const auto& it : node) {
-                writeWaveDigitalProbe(channel, i++, it.as<std::string>());
+                writeWaveDigitalProbe(i++, channel, it.as<std::string>());
                 std::cout << it.as<std::string>() << " ";
             }
             std::cout << std::endl;
@@ -817,7 +817,104 @@ void CAENV2740::printLVDSInfo() {
     std::cout << "LVDS 모드: " << readLVDSMode(0) << '\n';
     std::cout << "LVDS 방향: " << readLVDSDirection(0) << '\n';
     std::cout << "LVDS I/O 레지스터: " << readLVDSIOReg() << '\n';
-    std::cout << "LVDS 트리거 마스크: " << readLVDSTrgMask() << '\n';
+    // std::cout << "LVDS 트리거 마스크: " << readLVDSTrgMask() << '\n';
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+}
+
+void CAENV2740::printPanelDACInfo() {
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+    std::cout << "패널 DAC 정보" << '\n';
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+    std::cout << "DAC 출력 모드: " << readDACoutMode() << '\n';
+    std::cout << "DAC 출력 정적 레벨: " << readDACoutStaticLevel() << '\n';
+    std::cout << "DAC 출력 채널 선택: " << readDACoutChSelect() << '\n';
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+}
+
+void CAENV2740::printInputInfo() {
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+    std::cout << "입력 정보" << '\n';
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+    std::cout << "SelfTrigger 너비: " << readSelfTriggerWidth(0) << '\n';
+    std::cout << "입력 지연: " << readInputDelay(0) << '\n';
+    std::cout << "오프셋 교정: " << readEnOffsetCalibration() << '\n';
+    std::cout << "채널 가능: " << readChEnable(0) << '\n';
+    std::cout << "트리거 속도: " << readSelfTrgRate(0) << '\n';
+    std::cout << "채널 상태: " << readChStatus(0) << '\n';
+    std::cout << "채널 DC 오프셋: " << readDCOffset(0) << '\n';
+    std::cout << "채널 신호 오프셋: " << readSignalOffset(0) << '\n';
+    std::cout << "채널 게인 팩터: " << readGainFactor(0) << '\n';
+    std::cout << "ADC to Volts 팩터: " << readADCToVolts(0) << '\n';
+    std::cout << "트리거 문턱값: " << readTriggerThr(0) << '\n';
+    std::cout << "펄스 극성: " << readPulsePolarity(0) << '\n';
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+}
+
+void CAENV2740::printEventInfo() {
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+    std::cout << "이벤트 선택 정보" << '\n';
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+    std::cout << "에너지 스킴 저감 판별치: " << readEnergySkimLowDiscriminator(0) << '\n';
+    std::cout << "에너지 스킴 고감 판별치: " << readEnergySkimHighDiscriminator(0) << '\n';
+    std::cout << "이벤트 선택자: " << readEventSelector(0) << '\n';
+    std::cout << "파동 선택자: " << readWaveSelector(0) << '\n';
+    std::cout << "이벤트 중성자 거절: " << readEventNeutronReject(0) << '\n';
+    std::cout << "파동 중성자 거절: " << readWaveNeutronReject(0) << '\n';
+    std::cout << "동시 발생 마스크: " << readCoincidenceMask(0) << '\n';
+    std::cout << "반동시 발생 마스크: " << readAntiCoincidenceMask(0) << '\n';
+    std::cout << "동시 발생 길이: " << readCoincidenceLength(0) << " Samples\n";
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+}
+
+void CAENV2740::printDPPPSDInfo() {
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+    std::cout << "DPPPSD 설정 정보" << '\n';
+    std::cout
+        << "========================================================================================================"
+        << '\n';
+    std::cout << "스무딩 팩터: " << readSmoothingFactor(0) << '\n';
+    std::cout << "충전 스무딩: " << readChargeSmoothing(0) << '\n';
+    std::cout << "시간 필터 스무딩: " << readTimeFilterSmoothing(0) << '\n';
+    std::cout << "시간 필터 재트리거 가드: " << readTimeFilterRetriggerGuard(0) << " 샘플 수\n";
+    std::cout << "트리거 히스테리시스: " << readTriggerHysteresis(0) << '\n';
+    std::cout << "CFD 지연: " << readCFDDelay(0) << " 샘플 수\n";
+    std::cout << "CFD 분수: " << readCFDFraction(0) << " %\n";
+    std::cout << "트리거 필터 선택: " << readTriggerFilterSelection(0) << '\n';
+    std::cout << "ADC 입력 기준선 평균: " << readADCInputBaselineAvg(0) << '\n';
+    std::cout << "ADC 입력 기준선 가드: " << readADCInputBaselineGuard(0) << " 샘플 수\n";
+    std::cout << "파이업 간격: " << readPileupGap(0) << " ADC\n";
+    std::cout << "절대 기준선: " << readAbsoluteBaseline(0) << " ADC\n";
+    std::cout << "게이트 오프셋: " << readGateOffset(0) << " 샘플 수\n";
+    std::cout << "게이트 긴 길이: " << readGateLongLength(0) << " 샘플 수\n";
+    std::cout << "게이트 짧은 길이: " << readGateShortLength(0) << " 샘플 수\n";
+    std::cout << "긴 충전積분기 피데스탈: " << readLongChargeIntegratorPedestal(0) << " ADC\n";
+    std::cout << "짧은 충전積분기 피데스탈: " << readShortChargeIntegratorPedestal(0) << " ADC\n";
+    std::cout << "에너지 이득: " << readEnergyGain(0) << '\n';
+    std::cout << "중성자 임계값: " << readNeutronThreshold(0) << " ADC\n";
+    std::cout << "데이터 축소 활성화: " << readEnDataReduction() << '\n';
+    std::cout << "통계 이벤트 활성화: " << readEnStatEvents() << '\n';
     std::cout
         << "========================================================================================================"
         << '\n';
@@ -962,7 +1059,7 @@ void CAENV2740::setDataFormatDPPPHAStat() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 uint32_t CAENV2740::readRegister(const std::string& registerPath) {
-    char value[32];  // 충분한 크기의 문자 배열 선언
+    char value[128];  // 충분한 크기의 문자 배열 선언
     int ret = CAEN_FELib_GetValue(handle, registerPath.c_str(), value);
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("레지스터 읽기 실패: " + registerPath);
@@ -971,7 +1068,7 @@ uint32_t CAENV2740::readRegister(const std::string& registerPath) {
 }
 
 float CAENV2740::readRegisterInFloat(const std::string& registerPath) {
-    char value[32];  // 충분한 크기의 문자 배열 선언
+    char value[128];  // 충분한 크기의 문자 배열 선언
     int ret = CAEN_FELib_GetValue(handle, registerPath.c_str(), value);
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("레지스터 읽기 실패: " + registerPath);
@@ -980,7 +1077,7 @@ float CAENV2740::readRegisterInFloat(const std::string& registerPath) {
 }
 
 std::string CAENV2740::readRegisterInString(const std::string& registerPath) {
-    char value[32];  // 충분한 크기의 문자 배열 선언
+    char value[128];  // 충분한 크기의 문자 배열 선언
     int ret = CAEN_FELib_GetValue(handle, registerPath.c_str(), value);
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("레지스터 읽기 실패: " + registerPath);
@@ -992,7 +1089,7 @@ void CAENV2740::writeRegister(const std::string& registerPath, uint32_t value) {
     std::string valueStr = std::to_string(value);
     int ret = CAEN_FELib_SetValue(handle, registerPath.c_str(), valueStr.c_str());
     if (ret != CAEN_FELib_Success) {
-        // throw std::runtime_error("레지스터 쓰기 실패: " + registerPath);
+        throw std::runtime_error("레지스터 쓰기 실패: " + registerPath);
     }
 }
 
@@ -1000,14 +1097,14 @@ void CAENV2740::writeRegister(const std::string& registerPath, float value) {
     std::string valueStr = std::to_string(value);
     int ret = CAEN_FELib_SetValue(handle, registerPath.c_str(), valueStr.c_str());
     if (ret != CAEN_FELib_Success) {
-        // throw std::runtime_error("레지스터 쓰기 실패: " + registerPath);
+        throw std::runtime_error("레지스터 쓰기 실패: " + registerPath);
     }
 }
 
 void CAENV2740::writeRegister(const std::string& registerPath, std::string value) {
     int ret = CAEN_FELib_SetValue(handle, registerPath.c_str(), value.c_str());
     if (ret != CAEN_FELib_Success) {
-        // throw std::runtime_error("레지스터 쓰기 실패: " + registerPath);
+        throw std::runtime_error("레지스터 쓰기 실패: " + registerPath);
     }
 }
 
@@ -1126,11 +1223,11 @@ void CAENV2740::writeEnAutoDisarmAcq(bool enable) { writeRegister("/par/EnAutoDi
 uint32_t CAENV2740::readAcquisitionStatus() { return readRegister("/par/AcquisitionStatus"); }
 uint32_t CAENV2740::readLEDStatus() { return readRegister("/par/LEDStatus"); }
 
-uint32_t CAENV2740::readVolatileClockOutDelay() { return readRegister("/par/VolatileClockOutDelay"); }
-void CAENV2740::writeVolatileClockOutDelay(uint32_t delay) { writeRegister("/par/VolatileClockOutDelay", delay); }
+float CAENV2740::readVolatileClockOutDelay() { return readRegisterInFloat("/par/VolatileClockOutDelay"); }
+void CAENV2740::writeVolatileClockOutDelay(float delay) { writeRegister("/par/VolatileClockOutDelay", delay); }
 
-uint32_t CAENV2740::readPermanentClockOutDelay() { return readRegister("/par/PermanentClockOutDelay"); }
-void CAENV2740::writePermanentClockOutDelay(uint32_t delay) { writeRegister("/par/PermanentClockOutDelay", delay); }
+float CAENV2740::readPermanentClockOutDelay() { return readRegisterInFloat("/par/PermanentClockOutDelay"); }
+void CAENV2740::writePermanentClockOutDelay(float delay) { writeRegister("/par/PermanentClockOutDelay", delay); }
 
 uint32_t CAENV2740::readChRecordLength(int channel, bool isSample) {
     return isSample ? readChRecordLengthS(channel) : readChRecordLengthT(channel);
@@ -1161,7 +1258,7 @@ std::string CAENV2740::readWaveDownSamplingFactor(int channel) {
 }
 
 void CAENV2740::writeWaveDownSamplingFactor(int channel, int factor) {
-    writeRegister("/ch/" + std::to_string(channel) + "/par/WaveDownSamplingFactor", "x" + std::to_string(factor));
+    writeRegister("/ch/" + std::to_string(channel) + "/par/WaveDownSamplingFactor", std::to_string(factor));
 }
 
 std::string CAENV2740::readWaveAnalogProbe(int num, int channel) {
@@ -1289,7 +1386,7 @@ std::string CAENV2740::readITLConnect(int channel) {
     return readRegisterInString("/ch/" + std::to_string(channel) + "/par/ITLConnect");
 }
 void CAENV2740::writeITLConnect(int channel, std::string connect) {
-    writeRegister("/ch/" + std::to_string(channel) + "/ par/ITLConnect", connect);
+    writeRegister("/ch/" + std::to_string(channel) + "/par/ITLConnect", connect);
 }
 uint32_t CAENV2740::readITLXGateWidth(bool isA) {
     return readRegister("/par/ITL" + std::string(isA ? "A" : "B") + "GateWidth");

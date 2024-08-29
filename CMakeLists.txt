@@ -29,8 +29,8 @@ target_include_directories(test PRIVATE /usr/local/include)
 
 # v2740 관련 소스 파일 목록 설정
 set(V2740_SOURCES
-    v2740.cxx
-    v2740par.cxx
+    CAENV2740.cxx
+    CAENV2740Par.cxx
     # 필요한 다른 소스 파일들을 여기에 추가하세요
 )
 
@@ -45,6 +45,11 @@ target_link_libraries(v2740 PRIVATE ${CAEN_FELib_PATH} yaml-cpp)
 
 # test 실행 파일에 v2740 라이브러리 링크
 target_link_libraries(test PRIVATE v2740)
+
+# daq.cxx 컴파일 관련 내용 추가
+add_executable(daq daq.cxx)
+target_link_libraries(daq PRIVATE v2740)
+
 
 # 옵션으로 디버깅 정보 생성
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
