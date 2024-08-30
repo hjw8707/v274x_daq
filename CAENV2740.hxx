@@ -6,18 +6,21 @@
 
 #include <string>
 
+#include "CAENV2740Event.hxx"
 #include "CAENV2740Par.hxx"
 
 class CAENV2740 {
    private:
     uint64_t handle;  // int에서 uint64_t로 변경
     std::string connectionString;
+    CAENV2740Event evt;
 
    public:
     CAENV2740(const std::string& connString);
     ~CAENV2740();
 
     inline uint64_t getHandle() { return handle; }
+    inline const CAENV2740Event& getEvent() { return evt; }
 
     void connect();
     void configure();
@@ -74,8 +77,11 @@ class CAENV2740 {
     void setDataFormatRaw();
     void setDataFormatDPPPSD();
     void setDataFormatDPPPHA();
-    void setDataFormatDPPPSDStat();
-    void setDataFormatDPPPHAStat();
+    void setDataFormatDPPPSDStats();
+    void setDataFormatDPPPHAStats();
+
+    int readData();
+    int readStats();
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     uint32_t readRegister(const std::string& registerPath);

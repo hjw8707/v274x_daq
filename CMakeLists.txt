@@ -8,8 +8,9 @@ project(V274X_DAQ VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# yaml-cpp 라이브러리 찾기
+# yaml-cpp, ROOT 라이브러리 찾기
 find_package(yaml-cpp REQUIRED)
+find_package(ROOT REQUIRED)
 
 # 실행 파일을 생성할 소스 파일 설정
 add_executable(test test.cc)
@@ -31,6 +32,7 @@ target_include_directories(test PRIVATE /usr/local/include)
 set(V2740_SOURCES
     CAENV2740.cxx
     CAENV2740Par.cxx
+    CAENV2740Event.cxx
     # 필요한 다른 소스 파일들을 여기에 추가하세요
 )
 
@@ -49,6 +51,12 @@ target_link_libraries(test PRIVATE v2740)
 # daq.cxx 컴파일 관련 내용 추가
 add_executable(daq daq.cxx)
 target_link_libraries(daq PRIVATE v2740)
+
+
+# daq.cxx 컴파일 관련 내용 추가
+add_executable(readRaw readRaw.cxx)
+target_include_directories(readRaw PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(readRaw PRIVATE v2740 ${ROOT_LIBRARIES})
 
 
 # 옵션으로 디버깅 정보 생성

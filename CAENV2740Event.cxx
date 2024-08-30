@@ -26,6 +26,21 @@ CAENV2740Event::~CAENV2740Event() {
     for (size_t i = 0; i < 4; i++) delete digital_probes[i];
 }
 
+void CAENV2740Event::Print(std::ostream& os) const {
+    os << "===============================================================\n";
+    os << "채널 번호: " << static_cast<unsigned int>(channel) << std::endl;
+    os << "타임스탬프: " << timestamp << std::endl;
+    os << "세밀한 타임스탬프: " << fine_timestamp << std::endl;
+    os << "에너지: " << energy << std::endl;
+    os << "단기 에너지: " << energy_short << std::endl;
+    os << "낮은 우선순위 플래그: 0x" << std::hex << flags_low_priority << std::endl;
+    os << "높은 우선순위 플래그: 0x" << std::hex << flags_high_priority << std::endl;
+    os << std::dec;
+    os << "이벤트 크기: " << event_size << std::endl;
+    os << "샘플 수: " << n_samples << std::endl;
+    os << "===============================================================\n";
+}
+
 void CAENV2740Event::Serialize(std::ostream& os) const {
     os.write(reinterpret_cast<const char*>(&channel), sizeof(channel));
     os.write(reinterpret_cast<const char*>(&timestamp), sizeof(timestamp));

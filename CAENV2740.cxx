@@ -497,7 +497,7 @@ void CAENV2740::parameterParsing(const std::string& key, const YAML::Node& node,
             std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
             break;
         case HashCode("gate_offset"):
-            writeGateOffset(channel, node.as<uint32_t>());
+            writeGateOffsetT(channel, node.as<uint32_t>());
             std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
             break;
         case HashCode("gate_long_length"):
@@ -983,7 +983,7 @@ void CAENV2740::setDataFormatDPPPHA() {
     uint64_t ep_handle;
     int ret = CAEN_FELib_GetHandle(handle, "/endpoint/dpppha", &ep_handle);
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("Handle 얻기 실패");
+        throw std::runtime_error(std::string(__func__) + "함수에서 Handle 얻기 실패");
     }
 
     ret = CAEN_FELib_SetReadDataFormat(ep_handle,
@@ -993,6 +993,7 @@ void CAENV2740::setDataFormatDPPPHA() {
                 { \"name\" : \"TIMESTAMP\", \"type\" : \"U64\" }, \
                 { \"name\" : \"FINE_TIMESTAMP\", \"type\" : \"U16\" }, \
                 { \"name\" : \"ENERGY\", \"type\" : \"U16\" }, \
+                { \"name\" : \"ENERGY_SHORT\", \"type\" : \"U16\" }, \
                 { \"name\" : \"ANALOG_PROBE_1\", \"type\" : \"I32\", \"dim\" : 1 }, \
                 { \"name\" : \"ANALOG_PROBE_2\", \"type\" : \"I32\", \"dim\" : 1 }, \
                 { \"name\" : \"DIGITAL_PROBE_1\", \"type\" : \"U8\", \"dim\" : 1 }, \
@@ -1011,13 +1012,34 @@ void CAENV2740::setDataFormatDPPPHA() {
                 { \"name\" : \"EVENT_SIZE\", \"type\" : \"SIZE_T\" } \
         ]");
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("데이터 포맷 설정 실패");
+        throw std::runtime_error(std::string(__func__) + "함수에서 데이터 포맷 설정 실패");
     }
 }
 
-void CAENV2740::setDataFormatDPPPSDStat() {
+void CAENV2740::setDataFormatDPPPSDStats() {
     uint64_t ep_handle;
-    int ret = CAEN_FELib_GetHandle(handle, "/endpoint/dpppsd/stat", &ep_handle);
+    int ret = CAEN_FELib_GetHandle(handle, "/endpoint/dpppsd/stats", &ep_handle);
+    if (ret != CAEN_FELib_Success) {
+        throw std::runtime_error(std::string(__func__) + "함수에서 Handle 얻기 실패");
+    }
+
+    ret = CAEN_FELib_SetReadDataFormat(ep_handle,
+                                       " \
+        [ \
+            { \"name\" : \"REAL_TIME_NS\", \"type\" : \"U64\", \"dim\": 1 }, \
+            { \"name\" : \"DEAD_TIME_NS\", \"type\" : \"U64\", \"dim\": 1 }, \
+            { \"name\" : \"LIVE_TIME_NS\", \"type\" : \"U64\", \"dim\": 1 }, \
+            { \"name\" : \"TRIGGER_CNT\", \"type\" : \"U32\", \"dim\": 1  }, \
+            { \"name\" : \"SAVED_EVENT_CNT\", \"type\" : \"U32\", \"dim\": 1  }, \
+        ]");
+    if (ret != CAEN_FELib_Success) {
+        throw std::runtime_error(std::string(__func__) + "함수에서 데이터 포맷 설정 실패");
+    }
+}
+
+void CAENV2740::setDataFormatDPPPHAStats() {
+    uint64_t ep_handle;
+    int ret = CAEN_FELib_GetHandle(handle, "/endpoint/dpppha/stats", &ep_handle);
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("Handle 얻기 실패");
     }
@@ -1036,25 +1058,38 @@ void CAENV2740::setDataFormatDPPPSDStat() {
     }
 }
 
-void CAENV2740::setDataFormatDPPPHAStat() {
+int CAENV2740::readData() {
     uint64_t ep_handle;
-    int ret = CAEN_FELib_GetHandle(handle, "/endpoint/dpppha/stat", &ep_handle);
+    int ret = CAEN_FELib_GetHandle(handle, "/endpoint/dpppsd", &ep_handle);
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("Handle 얻기 실패");
     }
 
-    ret = CAEN_FELib_SetReadDataFormat(ep_handle,
-                                       " \
-        [ \
-            { \"name\" : \"REAL_TIME_NS\", \"type\" : \"U64\", \"dim\": 1 }, \
-            { \"name\" : \"DEAD_TIME_NS\", \"type\" : \"U64\", \"dim\": 1 }, \
-            { \"name\" : \"LIVE_TIME_NS\", \"type\" : \"U64\", \"dim\": 1 }, \
-            { \"name\" : \"TRIGGER_CNT\", \"type\" : \"U32\", \"dim\": 1  }, \
-            { \"name\" : \"SAVED_EVENT_CNT\", \"type\" : \"U32\", \"dim\": 1  }, \
-        ]");
+    ret = CAEN_FELib_ReadData(ep_handle, 100, &evt.channel, &evt.timestamp, &evt.fine_timestamp, &evt.energy,
+                              &evt.energy_short, evt.analog_probes[0], evt.analog_probes[1], evt.digital_probes[0],
+                              evt.digital_probes[1], evt.digital_probes[2], evt.digital_probes[3],
+                              &evt.analog_probes_type[0], &evt.analog_probes_type[1], &evt.digital_probes_type[0],
+                              &evt.digital_probes_type[1], &evt.digital_probes_type[2], &evt.digital_probes_type[3],
+                              &evt.n_samples, &evt.flags_low_priority, &evt.flags_high_priority, &evt.event_size);
+
+    return ret;
+}
+
+int CAENV2740::readStats() {
+    uint64_t ep_handle;
+    int ret = CAEN_FELib_GetHandle(handle, "/endpoint/dpppsd/stats", &ep_handle);
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("데이터 포맷 설정 실패");
+        throw std::runtime_error("Handle 얻기 실패");
     }
+
+    ret = CAEN_FELib_ReadData(ep_handle, 100, &evt.channel, &evt.timestamp, &evt.fine_timestamp, &evt.energy,
+                              &evt.energy_short, evt.analog_probes[0], evt.analog_probes[1], evt.digital_probes[0],
+                              evt.digital_probes[1], evt.digital_probes[2], evt.digital_probes[3],
+                              &evt.analog_probes_type[0], &evt.analog_probes_type[1], &evt.digital_probes_type[0],
+                              &evt.digital_probes_type[1], &evt.digital_probes_type[2], &evt.digital_probes_type[3],
+                              &evt.n_samples, &evt.flags_low_priority, &evt.flags_high_priority, &evt.event_size);
+
+    return ret;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -1338,10 +1373,10 @@ uint32_t CAENV2740::readErrorFlags() { return readRegister("/par/ErrorFlags"); }
 
 std::string CAENV2740::readBoardReady() { return readRegisterInString("/par/BoardReady"); }
 float CAENV2740::readChRealTimeMonitor(int channel) {
-    return readRegister("/ch/" + std::to_string(channel) + "/par/ChRealTimeMonitor");
+    return readRegisterInFloat("/ch/" + std::to_string(channel) + "/par/ChRealTimeMonitor");
 }
 float CAENV2740::readChDeadTimeMonitor(int channel) {
-    return readRegister("/ch/" + std::to_string(channel) + "/par/ChDeadTimeMonitor");
+    return readRegisterInFloat("/ch/" + std::to_string(channel) + "/par/ChDeadTimeMonitor");
 }
 uint32_t CAENV2740::readChTriggerCnt(int channel) {
     return readRegister("/ch/" + std::to_string(channel) + "/par/ChTriggerCnt");

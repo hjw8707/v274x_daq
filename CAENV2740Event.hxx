@@ -1,3 +1,6 @@
+#ifndef CAENV2740EVENT_HXX
+#define CAENV2740EVENT_HXX
+
 #include <CAEN_FELib.h>
 
 #include <iostream>
@@ -9,6 +12,8 @@ class CAENV2740Event {
 
     void Serialize(std::ostream& os) const;
     void SerializeWithWave(std::ostream& os) const;
+
+    void Print(std::ostream& os = std::cout) const;
 
    public:
     uint8_t channel;
@@ -26,3 +31,4 @@ class CAENV2740Event {
     size_t n_allocated_samples;
     size_t n_samples;
 };
+#endif  // CAENV2740EVENT_HXX
