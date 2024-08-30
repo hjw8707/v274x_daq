@@ -3,11 +3,13 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <ryml.hpp>
 #include <string>
 
 class CAENV2740Par {
    private:
-    YAML::Node config;
+    // YAML::Node config;
+    ryml::Tree conf;
     std::string filename;
 
    public:
@@ -17,31 +19,21 @@ class CAENV2740Par {
 
     inline const std::string& getFilename() const { return filename; }
 
-    void printYAMLNode(const YAML::Node& node, int indent = 0) const;
+    void printYAMLNode(ryml::ConstNodeRef node, int indent = 0) const;
     void printConfig() const;
 
-    inline const YAML::Node& getConfig() const { return config; };
+    inline const ryml::ConstNodeRef getConfig() const { return conf.crootref(); };
+    // inline const YAML::Node& getConfig() const { return config; };
 
-    template <typename T>
-    T getGlobalValue(const std::string& key) const;
-    template <>
     std::string getGlobalValue(const std::string& key) const;
-    template <>
-    uint32_t getGlobalValue(const std::string& key) const;
-    template <>
-    bool getGlobalValue(const std::string& key) const;
+    bool getGlobalValueBool(const std::string& key) const;
+    uint32_t getGlobalValueNumber(const std::string& key) const;
 
-    template <typename T>
-    T getChannelValue(const int ch, const std::string& key) const;
-    template <>
     std::string getChannelValue(const int ch, const std::string& key) const;
-    template <>
-    uint32_t getChannelValue(const int ch, const std::string& key) const;
-    template <>
-    bool getChannelValue(const int ch, const std::string& key) const;
-
-    bool hasGlobalValue(const std::string& key) const;
-    bool hasChannelValue(const int ch, const std::string& key) const;
+    bool getChannelValueBool(const int ch, const std::string& key) const;
+    uint32_t getChannelValueNumber(const int ch, const std::string& key) const;
+    // bool hasGlobalValue(const std::string& key) const;
+    // bool hasChannelValue(const int ch, const std::string& key) const;
 };
 
 #endif  // V2740_PARAMETER_MANAGER_H

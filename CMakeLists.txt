@@ -10,6 +10,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # yaml-cpp, ROOT 라이브러리 찾기
 find_package(yaml-cpp REQUIRED)
+find_package(ryml REQUIRED)
+find_package(c4core REQUIRED)
 find_package(ROOT REQUIRED)
 
 # 실행 파일을 생성할 소스 파일 설정
@@ -43,7 +45,7 @@ add_library(v2740 SHARED ${V2740_SOURCES})
 target_include_directories(v2740 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include /usr/local/include /opt/homebrew/include)
 
 # v2740 라이브러리 링크
-target_link_libraries(v2740 PRIVATE ${CAEN_FELib_PATH} yaml-cpp)
+target_link_libraries(v2740 PRIVATE ${CAEN_FELib_PATH} yaml-cpp ryml c4core)
 
 # test 실행 파일에 v2740 라이브러리 링크
 target_link_libraries(test PRIVATE v2740)

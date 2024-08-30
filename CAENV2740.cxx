@@ -103,470 +103,560 @@ void CAENV2740::loadParameter(const CAENV2740Par& par) {
 
     auto config = par.getConfig();
     // For global
-    for (const auto& it : config["global"]) {
-        parameterParsing(it.first.as<std::string>(), it.second);
-        if (it.second.IsMap())
-            for (const auto& it2 : it.second) parameterParsing(it2.first.as<std::string>(), it2.second);
-    }
+    for (const auto& it : config["global"]) parameterParsing(std::string(it.key().data(), it.key().size()), it);
 
     // for channel
+    int channel;
     for (const auto& it : config["channel"]) {
-        std::cout << "채널: " << it["number"].as<int>() << std::endl;
-        for (const auto& it2 : it["<<"])
-            for (const auto& it3 : it2.second)
-                parameterParsing(it3.first.as<std::string>(), it3.second, it["number"].as<int>());
+        it["number"] >> channel;
+        for (const auto& it2 : it) parameterParsing(std::string(it2.key().data(), it2.key().size()), it2, channel);
     }
 
     std::cout << "V2740 파라미터 로딩 완료" << std::endl;
     std::cout << "================================================" << std::endl;
 }
 
-void CAENV2740::parameterParsing(const std::string& key, const YAML::Node& node, int channel) {
-    if (!node.IsScalar() && !node.IsSequence()) return;
-    std::string value;
+void CAENV2740::parameterParsing(const std::string& key, ryml::ConstNodeRef node, int channel) {
+    std::string val_str;
+    bool val_bool;
+    uint32_t val_uint32;
+    float val_float;
+
     int i = 0;
     switch (HashCode(key.c_str())) {
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Global
         case HashCode("clock_source"):
-            writeClockSource(node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeClockSource(val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("en_clockoutfp"):
-            writeEnClockOutFP(node.as<bool>());
-            std::cout << "키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeEnClockOutFP(val_bool);
+            std::cout << "키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("start_source"):  // sequence
             for (const auto& it : node) {
-                if (!value.empty()) value += "|";
-                value += it.as<std::string>();
+                if (!val_str.empty()) val_str += "|";
+                val_str += std::string(it.val().data(), it.val().size());
             }
-            writeStartSource(value);
-            std::cout << "키: " << key << ", 값: " << value << std::endl;
+            writeStartSource(val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("global_trigger_source"):  // sequence
             for (const auto& it : node) {
-                if (!value.empty()) value += "|";
-                value += it.as<std::string>();
+                if (!val_str.empty()) val_str += "|";
+                val_str += std::string(it.val().data(), it.val().size());
             }
-            writeGlobalTriggerSource(value);
-            std::cout << "키: " << key << ", 값: " << value << std::endl;
+            writeGlobalTriggerSource(val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("trgout_mode"):
-            writeTrgOutMode(node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeTrgOutMode(val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("gpio_mode"):
-            writeGPIOMode(node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeGPIOMode(val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("busyin_source"):
-            writeBusyInSource(node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeBusyInSource(val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("syncout_mode"):
-            writeSyncOutMode(node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeSyncOutMode(val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("board_veto_source"):
-            writeBoardVetoSource(node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeBoardVetoSource(val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("board_veto_width"):
-            writeBoardVetoWidth(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeBoardVetoWidth(val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("veto_polarity"):
-            writeBoardVetoPolarity(node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeBoardVetoPolarity(val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("run_delay"):
-            writeRunDelay(node.as<int>());
-            std::cout << "키: " << key << ", 값: " << node.as<int>() << std::endl;
+            node >> val_uint32;
+            writeRunDelay(val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("auto_disarm_acq"):
-            writeEnAutoDisarmAcq(node.as<bool>());
-            std::cout << "키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeEnAutoDisarmAcq(val_bool);
+            std::cout << "키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("volatile_clkout_delay"):
-            writeVolatileClockOutDelay(node.as<float>());
-            std::cout << "키: " << key << ", 값: " << node.as<float>() << std::endl;
+            node >> val_float;
+            writeVolatileClockOutDelay(val_float);
+            std::cout << "키: " << key << ", 값: " << val_float << std::endl;
             break;
         case HashCode("permanent_clkout_delay"):
-            writePermanentClockOutDelay(node.as<float>());
-            std::cout << "키: " << key << ", 값: " << node.as<float>() << std::endl;
+            node >> val_float;
+            writePermanentClockOutDelay(val_float);
+            std::cout << "키: " << key << ", 값: " << val_float << std::endl;
             break;
         case HashCode("tp_period"):
-            writeTestPulsePeriod(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("tp_width"):
-            writeTestPulseWidth(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("tp_low_level"):
-            writeTestPulseLowLevel(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("tp_high_level"):
-            writeTestPulseHighLevel(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("io_level"):
-            writeIOlevel(node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("errorflag_mask"):
-            writeErrorFlagMask(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("errorflag_data_mask"):
-            writeErrorFlagDataMask(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("itla_main_logic"):
-            writeITLXMainLogic(true, node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeITLXMainLogic(true, val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("itla_majority_level"):
-            writeITLXMajorityLev(true, node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeITLXMajorityLev(true, val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("itla_pair_logic"):
-            writeITLXPairLogic(true, node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeITLXPairLogic(true, val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("itla_polarity"):
-            writeITLXPolarity(true, node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeITLXPolarity(true, val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("itla_mask"):
-            writeITLXMask(true, node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeITLXMask(true, val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("itla_gate_width"):
-            writeITLXGateWidth(true, node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeITLXGateWidth(true, val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("itlb_main_logic"):
-            writeITLXMainLogic(false, node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeITLXMainLogic(false, val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("itlb_majority_level"):
-            writeITLXMajorityLev(false, node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeITLXMajorityLev(false, val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("itlb_pair_logic"):
-            writeITLXPairLogic(false, node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeITLXPairLogic(false, val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("itlb_polarity"):
-            writeITLXPolarity(false, node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeITLXPolarity(false, val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("itlb_mask"):
-            writeITLXMask(false, node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeITLXMask(false, val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("itlb_gate_width"):
-            writeITLXGateWidth(false, node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeITLXGateWidth(false, val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("lvds_mode"):  // sequence
             std::cout << "키: " << key << ", 값: ";
             for (const auto& it : node) {
-                writeLVDSMode(i++, it.as<std::string>());
-                std::cout << it.as<std::string>() << " ";
+                it >> val_str;
+                writeLVDSMode(i++, val_str);
+                std::cout << val_str << " ";
             }
             std::cout << std::endl;
             break;
         case HashCode("lvds_direction"):  // sequence
             std::cout << "키: " << key << ", 값: ";
             for (const auto& it : node) {
-                writeLVDSDirection(i++, it.as<std::string>());
-                std::cout << it.as<std::string>() << " ";
+                it >> val_str;
+                writeLVDSDirection(i++, val_str);
+                std::cout << val_str << " ";
             }
             std::cout << std::endl;
             break;
         case HashCode("lvds_trg_mask"):
-            writeLVDSTrgMask(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeLVDSTrgMask(val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("dacout_mode"):
-            writeDACoutMode(node.as<std::string>());
-            std::cout << "키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeDACoutMode(val_str);
+            std::cout << "키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("dacout_static_level"):
-            writeDACoutStaticLevel(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeDACoutStaticLevel(val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("dacout_ch_select"):
-            writeDACoutChSelect(node.as<uint32_t>());
-            std::cout << "키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeDACoutChSelect(val_uint32);
+            std::cout << "키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("input_delay"):  // sequence
             std::cout << "키: " << key << ", 값: ";
             for (const auto& it : node) {
-                writeInputDelay(i++, it.as<uint32_t>());
-                std::cout << it.as<uint32_t>() << " ";
+                it >> val_uint32;
+                writeInputDelay(i++, val_uint32);
+                std::cout << val_uint32 << " ";
             }
             std::cout << std::endl;
             break;
         case HashCode("offset_calibration"):
-            writeEnOffsetCalibration(node.as<bool>());
-            std::cout << "키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeEnOffsetCalibration(val_bool);
+            std::cout << "키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("data_reduction"):
-            writeEnDataReduction(node.as<bool>());
-            std::cout << "키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeEnDataReduction(val_bool);
+            std::cout << "키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("stat_events"):
-            writeEnStatEvents(node.as<bool>());
-            std::cout << "키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeEnStatEvents(val_bool);
+            std::cout << "키: " << key << ", 값: " << val_bool << std::endl;
             break;
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // Channel
         case HashCode("wave_trigger_source"):
-            writeWaveTriggerSource(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeWaveTriggerSource(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("event_trigger_source"):
-            writeEventTriggerSource(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeEventTriggerSource(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("channels_trigger_mask"):
-            writeChannelTriggerMask(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeChannelTriggerMask(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("wave_saving"):
-            writeWaveSaving(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeWaveSaving(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("veto_source"):
-            writeChannelVetoSource(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeChannelVetoSource(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("veto_width"):
-            writeChannelVetoWidth(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeChannelVetoWidth(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("record_length"):
-            writeChRecordLengthT(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeChRecordLengthT(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("downsampling_factor"):
-            writeWaveDownSamplingFactor(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeWaveDownSamplingFactor(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("analog_probe"):
             std::cout << "채널: " << channel << ", 키: " << key << ", 값: ";
             for (const auto& it : node) {
-                writeWaveAnalogProbe(i++, channel, it.as<std::string>());
-                std::cout << it.as<std::string>() << " ";
+                it >> val_str;
+                writeWaveAnalogProbe(i++, channel, val_str);
+                std::cout << val_str << " ";
             }
             std::cout << std::endl;
             break;
         case HashCode("digital_probe"):
             std::cout << "채널: " << channel << ", 키: " << key << ", 값: ";
             for (const auto& it : node) {
-                writeWaveDigitalProbe(i++, channel, it.as<std::string>());
-                std::cout << it.as<std::string>() << " ";
+                it >> val_str;
+                writeWaveDigitalProbe(i++, channel, val_str);
+                std::cout << val_str << " ";
             }
             std::cout << std::endl;
             break;
         case HashCode("pre_trigger"):
-            writeChPreTriggerT(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeChPreTriggerT(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("wave_data_source"):
-            writeWaveDataSource(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeWaveDataSource(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("itl_connect"):
-            writeITLConnect(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeITLConnect(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("self_trig_width"):
-            writeSelfTriggerWidth(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeSelfTriggerWidth(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("enable"):
-            writeChEnable(channel, node.as<bool>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeChEnable(channel, val_bool);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("dc_offset"):
-            writeDCOffset(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeDCOffset(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("signal_offset"):
-            writeSignalOffset(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeSignalOffset(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("trig_threshold"):
-            writeTriggerThr(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeTriggerThr(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("pulse_polarity"):
-            writePulsePolarity(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writePulsePolarity(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("energy_skim_low_discriminator"):
-            writeEnergySkimLowDiscriminator(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeEnergySkimLowDiscriminator(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("energy_skim_high_discriminator"):
-            writeEnergySkimHighDiscriminator(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeEnergySkimHighDiscriminator(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("event_selector"):
-            writeEventSelector(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeEventSelector(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("wave_selector"):
-            writeWaveSelector(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeWaveSelector(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("event_neutron_reject"):
-            writeEventNeutronReject(channel, node.as<bool>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeEventNeutronReject(channel, val_bool);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("wave_neutron_reject"):
-            writeWaveNeutronReject(channel, node.as<bool>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeWaveNeutronReject(channel, val_bool);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("coin_mask"):
-            writeCoincidenceMask(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeCoincidenceMask(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("anticoin_mask"):
-            writeAntiCoincidenceMask(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeAntiCoincidenceMask(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("coin_length"):
-            writeCoincidenceLength(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeCoincidenceLength(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("smoothing_factor"):
-            writeSmoothingFactor(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeSmoothingFactor(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("charge_smoothing"):
-            writeChargeSmoothing(channel, node.as<bool>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeChargeSmoothing(channel, val_bool);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("timefilter_smoothing"):
-            writeTimeFilterSmoothing(channel, node.as<bool>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeTimeFilterSmoothing(channel, val_bool);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("timefilter_retrigger_guard"):
-            writeTimeFilterRetriggerGuard(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeTimeFilterRetriggerGuard(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("trigger_hysteresis"):
-            writeTriggerHysteresis(channel, node.as<bool>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeTriggerHysteresis(channel, val_bool);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("cfd_delay"):
-            writeCFDDelay(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeCFDDelay(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("cfd_fraction"):
-            writeCFDFraction(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeCFDFraction(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("trigger_filter"):
-            writeTriggerFilterSelection(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeTriggerFilterSelection(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("adcinput_baseline_avg"):
-            writeADCInputBaselineAvg(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeADCInputBaselineAvg(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("adcinput_baseline_guard"):
-            writeADCInputBaselineGuard(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeADCInputBaselineGuard(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("pileup_gap"):
-            writePileupGap(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writePileupGap(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("abs_baseline"):
-            writeAbsoluteBaseline(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeAbsoluteBaseline(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("gate_offset"):
-            writeGateOffsetT(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeGateOffsetT(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("gate_long_length"):
-            writeGateLongLengthT(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeGateLongLengthT(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("gate_short_length"):
-            writeGateShortLengthT(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeGateShortLengthT(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("long_charge_integ_ped"):
-            writeLongChargeIntegratorPedestal(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeLongChargeIntegratorPedestal(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("short_charge_integ_ped"):
-            writeShortChargeIntegratorPedestal(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeShortChargeIntegratorPedestal(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("energy_gain"):
-            writeEnergyGain(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeEnergyGain(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("neutron_threshold"):
-            writeNeutronThreshold(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeNeutronThreshold(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("timefilter_rise_time"):
-            writeTimeFilterRiseTime(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeTimeFilterRiseTime(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("energyfilter_rise_time"):
-            writeEnergyFilterRiseTime(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeEnergyFilterRiseTime(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("energyfilter_flat_top"):
-            writeEnergyFilterFlatTop(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeEnergyFilterFlatTop(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("energyfilter_peaking_pos"):
-            writeEnergyFilterPeakingPosition(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeEnergyFilterPeakingPosition(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("energyfilter_peaking_avg"):
-            writeEnergyFilterPeakingAvg(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeEnergyFilterPeakingAvg(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("energyfilter_pole_zero"):
-            writeEnergyFilterPoleZero(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeEnergyFilterPoleZero(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("energyfilter_fine_gain"):
-            writeEnergyFilterFineGain(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeEnergyFilterFineGain(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("energyfilter_lf_limit"):
-            writeEnergyFilterLFLimitation(channel, node.as<bool>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<bool>() << std::endl;
+            node >> val_bool;
+            writeEnergyFilterLFLimitation(channel, val_bool);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_bool << std::endl;
             break;
         case HashCode("energyfilter_baseline_avg"):
-            writeEnergyFilterBaselineAvg(channel, node.as<std::string>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<std::string>() << std::endl;
+            node >> val_str;
+            writeEnergyFilterBaselineAvg(channel, val_str);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_str << std::endl;
             break;
         case HashCode("energyfilter_baseline_guard"):
-            writeEnergyFilterBaselineGuard(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeEnergyFilterBaselineGuard(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         case HashCode("energyfilter_pileup_guard"):
-            writeEnergyFilterPileupGuard(channel, node.as<uint32_t>());
-            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << node.as<uint32_t>() << std::endl;
+            node >> val_uint32;
+            writeEnergyFilterPileupGuard(channel, val_uint32);
+            std::cout << "채널: " << channel << ", 키: " << key << ", 값: " << val_uint32 << std::endl;
             break;
         default:
             break;
@@ -579,121 +669,121 @@ void CAENV2740::parameterParsing(const std::string& key, const YAML::Node& node,
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void CAENV2740::printDigitizerInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "V2740 디지털 형식 변환기 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "모델 이름: " << readModelName() << '\n';
     std::cout << "시리얼 번호: " << readSerialNumber() << '\n';
     std::cout << "CUP 버전: " << readCUPVersion() << '\n';
     std::cout << "FPGA 펌웨어 버전: " << readFPGAFWVersion() << '\n';
     std::cout << "FW 타입: " << readFWType() << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printLicenseInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "라이센스 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "라이센스: " << readLicense() << '\n';
     std::cout << "라이센스 상태: " << readLicenseStatus() << '\n';
     std::cout << "라이센스 남은 시간: " << readLicenseRemainingTime() << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printSpecInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "사양 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "채널 수: " << readNumberOfChannels() << '\n';
     std::cout << "ADC 해상도: " << readADCResolution() << " 비트\n";
     std::cout << "ADC 샘플링 레이트: " << readADCSamplingRate() << " Hz\n";
     std::cout << "입력 범위: " << readInputRange() << " mV\n";
     std::cout << "입력 타입: " << readInputType() << '\n';
     std::cout << "입력 임피던스: " << readInputImpedance() << " Ω\n";
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printNetworkInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "네트워크 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "SPF 링크 존재 여부: " << readSFPLinkPresence() << '\n';
     std::cout << "SPF 링크 활성화 여부: " << readSFPLinkActive() << '\n';
     std::cout << "SPF 링크 프로토콜: " << readSFPLinkProtocol() << '\n';
     std::cout << "IP 주소: " << readIPAddress() << '\n';
     std::cout << "서브넷 마스크: " << readSubnetMask() << '\n';
     std::cout << "게이트웨이: " << readGateway() << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printClockInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "클럭 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "클럭 소스: " << readClockSource() << '\n';
     std::cout << "클럭 출력 활성화: " << readEnClockOutFP() << '\n';
     std::cout << "변경 가능한 클럭 출력 지연: " << readVolatileClockOutDelay() << '\n';
     std::cout << "영원한 클럭 출력 지연: " << readPermanentClockOutDelay() << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printTriggerSourceInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "트리거 소스" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "시작 소스: " << readStartSource() << '\n';
     std::cout << "전역 트리거 소스: " << readGlobalTriggerSource() << '\n';
     std::cout << "파형 저장 모드: " << readWaveSaving(0) << '\n';
     std::cout << "파형 트리거 소스: " << readWaveTriggerSource(0) << '\n';
     std::cout << "이벤트 트리거 소스: " << readEventTriggerSource(0) << '\n';
     std::cout << "채널 트리거 마스크: " << readChannelTriggerMask(0) << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printPanelIOInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "패널 IO 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "트리거 출력 모드: " << readTrgOutMode() << '\n';
     std::cout << "GPIO 모드: " << readGPIOMode() << '\n';
     std::cout << "BusyIn 입력 소스: " << readBusyInSource() << '\n';
@@ -703,85 +793,85 @@ void CAENV2740::printPanelIOInfo() {
     std::cout << "BoardVeto 극성: " << readBoardVetoPolarity() << '\n';
     std::cout << "ChannelVeto 입력 소스: " << readChannelVetoSource(0) << '\n';
     std::cout << "ChannelVeto 출력 모드: " << readChannelVetoWidth(0) << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printWaveParamInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "파형 매개변수 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "채널 레코드 길이: " << readChRecordLength(0) << " Samples" << '\n';
     std::cout << "채널 PreTrigger 길이: " << readChPreTrigger(0) << " Samples" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printWaveProbeInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "파형 프로브 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "파형 아날로그 프로브 0: " << readWaveAnalogProbe(0, 0) << '\n';
     std::cout << "파형 아날로그 프로브 1: " << readWaveAnalogProbe(1, 0) << '\n';
     std::cout << "파형 디지털 프로브 0: " << readWaveDigitalProbe(0, 0) << '\n';
     std::cout << "파형 디지털 프로브 1: " << readWaveDigitalProbe(1, 0) << '\n';
     std::cout << "파형 디지털 프로브 2: " << readWaveDigitalProbe(2, 0) << '\n';
     std::cout << "파형 디지털 프로브 3: " << readWaveDigitalProbe(3, 0) << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 void CAENV2740::printRawDataInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "Raw 데이터 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "최대 Raw 데이터 크기: " << readMaxRawDataSize() << '\n';
     std::cout << "파형 데이터 소스: " << readWaveDataSource(0) << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printCounterInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "카운터 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "채널 실시간 모니터: " << readChRealTimeMonitor(0) << '\n';
     std::cout << "채널 데드타임 모니터: " << readChDeadTimeMonitor(0) << '\n';
     std::cout << "채널 트리거 카운터: " << readChTriggerCnt(0) << '\n';
     std::cout << "채널 저장된 이벤트 카운터: " << readChSavedEventCnt(0) << '\n';
     std::cout << "채널 파형 카운터: " << readChWaveCnt(0) << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printITLInfo(int option) {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "ITLX 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "ITL 연결 정보: " << readITLConnect(0) << '\n';
     if (option == 1 || option == 3) {
         std::cout << "ITLA 정보" << '\n';
@@ -801,52 +891,52 @@ void CAENV2740::printITLInfo(int option) {
         std::cout << "ITLB Mask: " << readITLXMask(false) << '\n';
         std::cout << "ITLB Gate 너비: " << readITLXGateWidth(false) << '\n';
     }
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printLVDSInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "LVDS 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "LVDS 모드: " << readLVDSMode(0) << '\n';
     std::cout << "LVDS 방향: " << readLVDSDirection(0) << '\n';
     std::cout << "LVDS I/O 레지스터: " << readLVDSIOReg() << '\n';
     // std::cout << "LVDS 트리거 마스크: " << readLVDSTrgMask() << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printPanelDACInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "패널 DAC 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "DAC 출력 모드: " << readDACoutMode() << '\n';
     std::cout << "DAC 출력 정적 레벨: " << readDACoutStaticLevel() << '\n';
     std::cout << "DAC 출력 채널 선택: " << readDACoutChSelect() << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printInputInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "입력 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "SelfTrigger 너비: " << readSelfTriggerWidth(0) << '\n';
     std::cout << "입력 지연: " << readInputDelay(0) << '\n';
     std::cout << "오프셋 교정: " << readEnOffsetCalibration() << '\n';
@@ -859,19 +949,19 @@ void CAENV2740::printInputInfo() {
     std::cout << "ADC to Volts 팩터: " << readADCToVolts(0) << '\n';
     std::cout << "트리거 문턱값: " << readTriggerThr(0) << '\n';
     std::cout << "펄스 극성: " << readPulsePolarity(0) << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printEventInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "이벤트 선택 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "에너지 스킴 저감 판별치: " << readEnergySkimLowDiscriminator(0) << '\n';
     std::cout << "에너지 스킴 고감 판별치: " << readEnergySkimHighDiscriminator(0) << '\n';
     std::cout << "이벤트 선택자: " << readEventSelector(0) << '\n';
@@ -881,19 +971,19 @@ void CAENV2740::printEventInfo() {
     std::cout << "동시 발생 마스크: " << readCoincidenceMask(0) << '\n';
     std::cout << "반동시 발생 마스크: " << readAntiCoincidenceMask(0) << '\n';
     std::cout << "동시 발생 길이: " << readCoincidenceLength(0) << " Samples\n";
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 
 void CAENV2740::printDPPPSDInfo() {
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "DPPPSD 설정 정보" << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
     std::cout << "스무딩 팩터: " << readSmoothingFactor(0) << '\n';
     std::cout << "충전 스무딩: " << readChargeSmoothing(0) << '\n';
     std::cout << "시간 필터 스무딩: " << readTimeFilterSmoothing(0) << '\n';
@@ -915,9 +1005,9 @@ void CAENV2740::printDPPPSDInfo() {
     std::cout << "중성자 임계값: " << readNeutronThreshold(0) << " ADC\n";
     std::cout << "데이터 축소 활성화: " << readEnDataReduction() << '\n';
     std::cout << "통계 이벤트 활성화: " << readEnStatEvents() << '\n';
-    std::cout
-        << "========================================================================================================"
-        << '\n';
+    std::cout << "========================================================================================="
+                 "==============="
+              << '\n';
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

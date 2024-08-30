@@ -1,247 +1,254 @@
-channel_setting: &channel_setting
-  trigger:
-    wave_trigger_source: trgin # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
-    event_trigger_source: trgin # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
-    channels_trigger_mask: 0xffff # 0x0000 ~ 0xffff
-    wave_saving: always # "Always", "OnRequest"
-    veto_source: disabled # "Disabled", "BoardVeto", "ADCOverSaturation", "ADCUnderSaturation"
-    veto_width: 0 # [ns]
-  waveform:
-    record_length: 1000 # [ns]
-    downsampling_factor: 1 # 1, 2, 4, 8
-    analog_probe: [adcinput, adcinput] # "ADCInput", "ADCInputBaseline", "CFDFilter"
-    digital_probe:
-      [trigger, trigger, trigger, trigger] #"Trigger", "CFDFilterArmed", "ReTriggerGuard", "ADCInputBaselineFreeze",
-      # "ADCinputOverthreshold", "ChargeReady", "LongGate" "PileUpTrigger", "ShortGate",
-      # "ChargeOverRange", "ADCSaturation", "ADCInputNegativeOverThreshold"
-    pre_trigger: 0 # [ns]
-    wave_data_source:
-      adc_data #"ADC_DATA", "ADC_TEST_TOGGLE", "ADC_TEST_RAMP",
-      #"ADC_TEST_SIN", "ADC_TEST_PRBS", "Ramp", "IPE", "SquareWave"
-  itl:
-    itl_connect: disabled # "Disabled", "ITLA", "ITLB"
-  input:
-    self_trig_width: 20 # [ns]
-    enable: true # true, false
-    dc_offset: 50 # [%]
-    signal_offset: 50 # [uV]
-    trig_threshold: 50 # [ADC counts]
-    pulse_polarity: positive # "Positive", "Negative"
-  event:
-    energy_skim_low_discriminator: 0 # [bin]
-    energy_skim_high_discriminator: 0 # [bin]
-    event_selector: all # "All", "PileUp", "EnergySkim"
-    wave_selector: all # "All", "PileUp", "EnergySkim"
-    event_neutron_reject: true # true, false
-    wave_neutron_reject: true # true, false
-    coin_mask: disabled # "Disabled", "Ch64Trigger", "TRGIN", "GlobalTriggerSource", "ITLA", "ITLB"
-    anticoin_mask: disabled # "Disabled", "Ch64Trigger", "TRGIN", "GlobalTriggerSource", "ITLA", "ITLB"
-    coin_length: 0 # [ns]
-  dppcommon:
-    timefilter_retrigger_guard: 0 # [ns]
-  dpppha:
-    timefilter_rise_time: 0 # [ns]
-    energyfilter_rise_time: 0 # [ns]
-    energyfilter_flat_top: 0 # [ns]
-    energyfilter_peaking_pos: 0 # [%]
-    energyfilter_peaking_avg: oneshot # "Oneshot", "LowAVG", "MediumAVG", "HighAVG"
-    energyfilter_pole_zero: 0 # [ns]
-    energyfilter_fine_gain: 1 # 0.001 unit
-    energyfilter_lf_limit: false # true, false
-    energyfilter_baseline_avg: fixed # "Fixed", "VeryLow", "Low", "MediumLow", "Medium", "MediumHigh", "High"
-    energyfilter_baseline_guard: 0 # [ns]
-    energyfilter_pileup_guard: 0 # [ns]
+ch_default: &ch_default # trigger
+  wave_trigger_source: disabled # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
+  event_trigger_source: chselftrigger # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
+  channels_trigger_mask: 0x0FF # 0x0000 ~ 0xffff
+  wave_saving: always # "Always", "OnRequest"
+  veto_source: disabled # "Disabled", "BoardVeto", "ADCOverSaturation", "ADCUnderSaturation"
+  veto_width: 0 # [ns]
+  # waveform
+  record_length: 20000 # [ns]
+  downsampling_factor: 1 # 1, 2, 4, 8
+  analog_probe: [adcinput, cfdfilter] # "ADCInput", "ADCInputBaseline", "CFDFilter"
+  digital_probe:
+    [trigger, longgate, shortgate, chargeready] #"Trigger", "CFDFilterArmed", "ReTriggerGuard", "ADCInputBaselineFreeze",
+    # "ADCinputOverthreshold", "ChargeReady", "LongGate" "PileUpTrigger", "ShortGate",
+    # "ChargeOverRange", "ADCSaturation", "ADCInputNegativeOverThreshold"
+  pre_trigger: 496 # [ns]
+  wave_data_source:
+    adc_data #"ADC_DATA", "ADC_TEST_TOGGLE", "ADC_TEST_RAMP",
+    #"ADC_TEST_SIN", "ADC_TEST_PRBS", "Ramp", "IPE", "SquareWave"
+  # itl:
+  itl_connect: itlb # "Disabled", "ITLA", "ITLB"
+  # input:
+  self_trig_width: 64 # [ns]
+  enable: false # true, false
+  dc_offset: 50 # [%]
+  signal_offset: 0 # [uV]
+  trig_threshold: 350 # [ADC counts]
+  pulse_polarity: positive # "Positive", "Negative"
+  # event:
+  energy_skim_low_discriminator: 0 # [bin]
+  energy_skim_high_discriminator: 65535 # [bin]
+  event_selector: all # "All", "PileUp", "EnergySkim"
+  wave_selector: all # "All", "PileUp", "EnergySkim"
+  event_neutron_reject: false # true, false
+  wave_neutron_reject: false # true, false
+  coin_mask: disabled # "Disabled", "Ch64Trigger", "TRGIN", "GlobalTriggerSource", "ITLA", "ITLB"
+  anticoin_mask: disabled # "Disabled", "Ch64Trigger", "TRGIN", "GlobalTriggerSource", "ITLA", "ITLB"
+  coin_length: 0 # [ns]
+  # dppcommon:
+  timefilter_retrigger_guard: 0 # [ns]
+  # dpppha:
+  timefilter_rise_time: 0 # [ns]
+  energyfilter_rise_time: 0 # [ns]
+  energyfilter_flat_top: 0 # [ns]
+  energyfilter_peaking_pos: 0 # [%]
+  energyfilter_peaking_avg: oneshot # "Oneshot", "LowAVG", "MediumAVG", "HighAVG"
+  energyfilter_pole_zero: 0 # [ns]
+  energyfilter_fine_gain: 1 # 0.001 unit
+  energyfilter_lf_limit: false # true, false
+  energyfilter_baseline_avg: fixed # "Fixed", "VeryLow", "Low", "MediumLow", "Medium", "MediumHigh", "High"
+  energyfilter_baseline_guard: 0 # [ns]
+  energyfilter_pileup_guard: 0 # [ns]
 
 global:
   # 기본 설정
   clock_source: internal # 'internal', 'FPClkIn'
   en_clockoutfp: true # true, false
-  trigger:
-    start_source: [swcmd, lvds] #EncodedClkIn", "SINlevel", "SINedge", "SWcmd", "LVDS", "P0"
-    global_trigger_source: [trgin] # "TrgIn", "P0", "SwTrg", "LVDS", "ITLA", "ITLB", "ITLA_AND_ITLB", "ITLA_OR_ITLB", "EncodedClkIn", "GPIO", "TestPulse", "UserTrg"
-    trgout_mode:
-      trgin # "Disabled", "TrgIn", "P0", "SwTrg", "LVDS", "ITLA", "ITLB", "ITLA_AND_ITLB",
-      # "ITLA_OR_ITLB", "EncodedClkIn", "RUN", "RefClk", "TestPulse", "Busy", "UserTrgout",
-      #"Fixed0", "Fixed1", "SyncIn", "SIN", "GPIO", "LBinClk", "AcceptTrg", "TrgClk"
-    gpio_mode:
-      disabled # "Disabled", "TrgIn", "P0", "SIN", "LVDS", "ITLA", "ITLB",
-      #"ITLA_AND_ITLB", "ITLA_OR_ITLB", "EncodedClkIn", "SWTrg", "Run", "RefClk",
-      #"TestPulse", "Busy", "UserGPO", "Fixed0", "Fixed1"
-    busyin_source: sin # "Disabled", "SIN", "GPIO", "LVDS"
-    syncout_mode: disabled # "Disabled", "SyncIn", "TestPulse", "IntClk", "Run", "User"
-    board_veto_source: disabled # "Disabled", "SIN", "GPIO", "LVDS", "P0", "EncodedClkIn"
-    board_veto_width: 0 # [ns]
-    veto_polarity: activehigh # "ActiveLow", "ActiveHigh"
-    run_delay: 0 # [ns]
-    auto_disarm_acq: true # true, false
-    volatile_clkout_delay: 0 # [ps]
-    permanent_clkout_delay: 0 # [ps]
-  testpulse:
-    tp_period: 1000 # [ns]
-    tp_width: 100 # [ns]
-    tp_low_level: 0 # [ADC counts]
-    tp_high_level: 1000 # [ADC counts]
-  service:
-    io_level: nim #  "NIM", "TTL"
-    errorflag_mask: 0x0000 # 0x0000 ~ 0xffff
-    errorflag_data_mask: 0x0000 # 0x0000 ~ 0xffff
-  itla:
-    itla_main_logic: and # "OR", "AND", "Majority"
-    itla_majority_level: 1
-    itla_pair_logic: and # "OR", "AND", "None"
-    itla_polarity: direct # "Inverted", "Direct"
-    itla_mask: 0x0000 # 0x0000 ~ 0xffff
-    itla_gate_width: 0 # [ns]
-  itlb:
-    itlb_main_logic: and # "OR", "AND", "Majority"
-    itlb_majority_level: 1
-    itlb_pair_logic: and # "OR", "AND", "None"
-    itlb_polarity: direct # "Inverted", "Direct"
-    itlb_mask: 0x0000 # 0x0000 ~ 0xffff
-    itlb_gate_width: 0 # [ns]
-  lvds:
-    lvds_mode: [selftriggers, selftriggers, selftriggers, selftriggers] # "SelfTriggers", "Sync", "IORegister", "User"
-    lvds_direction: [input, input, input, input] # "Input", "Outpu"
-    lvds_trg_mask: 0xFFFF # 0x0000 ~ 0xffff
-  dacout:
-    dacout_mode:
-      static # "Static", "Ramp", "Sin5MHz", "Square", "IPE", "ChInput",
-      #"MemOccupancy", "ChSum", "OverThrSum"
-    dacout_static_level: 0 # [ADC counts]
-    dacout_ch_select: 0 # [0 ~ 63]
-  input:
-    input_delay: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # group of 4 channels [Sample]
-    offset_calibration: true # true, false
-  dpp:
-    data_reduction: true # true, false
-    stat_events: true # true, false
+  # trigger:
+  start_source: [swcmd] #EncodedClkIn", "SINlevel", "SINedge", "SWcmd", "LVDS", "P0"
+  global_trigger_source: [swtrg] # "TrgIn", "P0", "SwTrg", "LVDS", "ITLA", "ITLB", "ITLA_AND_ITLB", "ITLA_OR_ITLB", "EncodedClkIn", "GPIO", "TestPulse", "UserTrg"
+  trgout_mode:
+    itlb # "Disabled", "TrgIn", "P0", "SwTrg", "LVDS", "ITLA", "ITLB", "ITLA_AND_ITLB",
+    # "ITLA_OR_ITLB", "EncodedClkIn", "RUN", "RefClk", "TestPulse", "Busy", "UserTrgout",
+    #"Fixed0", "Fixed1", "SyncIn", "SIN", "GPIO", "LBinClk", "AcceptTrg", "TrgClk"
+  gpio_mode:
+    run # "Disabled", "TrgIn", "P0", "SIN", "LVDS", "ITLA", "ITLB",
+    #"ITLA_AND_ITLB", "ITLA_OR_ITLB", "EncodedClkIn", "SWTrg", "Run", "RefClk",
+    #"TestPulse", "Busy", "UserGPO", "Fixed0", "Fixed1"
+  busyin_source: sin # "Disabled", "SIN", "GPIO", "LVDS"
+  syncout_mode: disabled # "Disabled", "SyncIn", "TestPulse", "IntClk", "Run", "User"
+  board_veto_source: disabled # "Disabled", "SIN", "GPIO", "LVDS", "P0", "EncodedClkIn"
+  board_veto_width: 0 # [ns]
+  veto_polarity: activehigh # "ActiveLow", "ActiveHigh"
+  run_delay: 0 # [ns]
+  auto_disarm_acq: true # true, false
+  volatile_clkout_delay: -2592.5925925925926 # [ps]
+  permanent_clkout_delay: -2592.5925925925926 # [ps]
+  # testpulse:
+  tp_period: 1000 # [ns]
+  tp_width: 100 # [ns]
+  tp_low_level: 0 # [ADC counts]
+  tp_high_level: 1000 # [ADC counts]
+  # service:
+  io_level: nim #  "NIM", "TTL"
+  errorflag_mask: 0x0000 # 0x0000 ~ 0xffff
+  errorflag_data_mask: 0x0000 # 0x0000 ~ 0xffff
+  # itla:
+  itla_main_logic: or # "OR", "AND", "Majority"
+  itla_majority_level: 1
+  itla_pair_logic: none # "OR", "AND", "None"
+  itla_polarity: direct # "Inverted", "Direct"
+  itla_mask: 0x0000 # 0x0000 ~ 0xffff
+  itla_gate_width: 16 # [ns]
+  # itlb:
+  itlb_main_logic: or # "OR", "AND", "Majority"
+  itlb_majority_level: 1
+  itlb_pair_logic: none # "OR", "AND", "None"
+  itlb_polarity: direct # "Inverted", "Direct"
+  itlb_mask: 0x0000 # 0x0000 ~ 0xffff
+  itlb_gate_width: 16 # [ns]
+  # lvds:
+  lvds_mode: [selftriggers, selftriggers, selftriggers, selftriggers] # "SelfTriggers", "Sync", "IORegister", "User"
+  lvds_direction: [output, output, output, output] # "Input", "Output"
+  #lvds_trg_mask: 0xFFFF # 0x0000 ~ 0xffff
+  # dacout:
+  dacout_mode:
+    static # "Static", "Ramp", "Sin5MHz", "Square", "IPE", "ChInput",
+    #"MemOccupancy", "ChSum", "OverThrSum"
+  dacout_static_level: 8192 # [ADC counts]
+  dacout_ch_select: 0 # [0 ~ 63]
+  # input:
+  input_delay: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # group of 4 channels [Sample]
+  offset_calibration: true # true, false
+  # dpp:
+  data_reduction: false # true, false
+  stat_events: false # true, false
 
 channel:
   - number: 0
-    <<: *channel_setting
+    <<: *ch_default
+    enable: true
   - number: 1
-    <<: *channel_setting
+    <<: *ch_default
+    enable: true
   - number: 2
-    <<: *channel_setting
+    <<: *ch_default
+    enable: true
   - number: 3
-    <<: *channel_setting
+    <<: *ch_default
+    enable: true
   - number: 4
-    <<: *channel_setting
+    <<: *ch_default
+    enable: true
   - number: 5
-    <<: *channel_setting
+    <<: *ch_default
+    enable: true
   - number: 6
-    <<: *channel_setting
+    <<: *ch_default
+    enable: true
   - number: 7
-    <<: *channel_setting
+    <<: *ch_default
+    enable: true
   - number: 8
-    <<: *channel_setting
+    <<: *ch_default
   - number: 9
-    <<: *channel_setting
+    <<: *ch_default
   - number: 10
-    <<: *channel_setting
+    <<: *ch_default
   - number: 11
-    <<: *channel_setting
+    <<: *ch_default
   - number: 12
-    <<: *channel_setting
+    <<: *ch_default
   - number: 13
-    <<: *channel_setting
+    <<: *ch_default
   - number: 14
-    <<: *channel_setting
+    <<: *ch_default
   - number: 15
-    <<: *channel_setting
+    <<: *ch_default
   - number: 16
-    <<: *channel_setting
+    <<: *ch_default
   - number: 17
-    <<: *channel_setting
+    <<: *ch_default
   - number: 18
-    <<: *channel_setting
+    <<: *ch_default
   - number: 19
-    <<: *channel_setting
+    <<: *ch_default
   - number: 20
-    <<: *channel_setting
+    <<: *ch_default
   - number: 21
-    <<: *channel_setting
+    <<: *ch_default
   - number: 22
-    <<: *channel_setting
+    <<: *ch_default
   - number: 23
-    <<: *channel_setting
+    <<: *ch_default
   - number: 24
-    <<: *channel_setting
+    <<: *ch_default
   - number: 25
-    <<: *channel_setting
+    <<: *ch_default
   - number: 26
-    <<: *channel_setting
+    <<: *ch_default
   - number: 27
-    <<: *channel_setting
+    <<: *ch_default
   - number: 28
-    <<: *channel_setting
+    <<: *ch_default
   - number: 29
-    <<: *channel_setting
+    <<: *ch_default
   - number: 30
-    <<: *channel_setting
+    <<: *ch_default
   - number: 31
-    <<: *channel_setting
+    <<: *ch_default
   - number: 32
-    <<: *channel_setting
+    <<: *ch_default
   - number: 33
-    <<: *channel_setting
+    <<: *ch_default
   - number: 34
-    <<: *channel_setting
+    <<: *ch_default
   - number: 35
-    <<: *channel_setting
+    <<: *ch_default
   - number: 36
-    <<: *channel_setting
+    <<: *ch_default
   - number: 37
-    <<: *channel_setting
+    <<: *ch_default
   - number: 38
-    <<: *channel_setting
+    <<: *ch_default
   - number: 39
-    <<: *channel_setting
+    <<: *ch_default
   - number: 40
-    <<: *channel_setting
+    <<: *ch_default
   - number: 41
-    <<: *channel_setting
+    <<: *ch_default
   - number: 42
-    <<: *channel_setting
+    <<: *ch_default
   - number: 43
-    <<: *channel_setting
+    <<: *ch_default
   - number: 44
-    <<: *channel_setting
+    <<: *ch_default
   - number: 45
-    <<: *channel_setting
+    <<: *ch_default
   - number: 46
-    <<: *channel_setting
+    <<: *ch_default
   - number: 47
-    <<: *channel_setting
+    <<: *ch_default
   - number: 48
-    <<: *channel_setting
+    <<: *ch_default
   - number: 49
-    <<: *channel_setting
+    <<: *ch_default
   - number: 50
-    <<: *channel_setting
+    <<: *ch_default
   - number: 51
-    <<: *channel_setting
+    <<: *ch_default
   - number: 52
-    <<: *channel_setting
+    <<: *ch_default
   - number: 53
-    <<: *channel_setting
+    <<: *ch_default
   - number: 54
-    <<: *channel_setting
+    <<: *ch_default
   - number: 55
-    <<: *channel_setting
+    <<: *ch_default
   - number: 56
-    <<: *channel_setting
+    <<: *ch_default
   - number: 57
-    <<: *channel_setting
+    <<: *ch_default
   - number: 58
-    <<: *channel_setting
+    <<: *ch_default
   - number: 59
-    <<: *channel_setting
+    <<: *ch_default
   - number: 60
-    <<: *channel_setting
+    <<: *ch_default
   - number: 61
-    <<: *channel_setting
+    <<: *ch_default
   - number: 62
-    <<: *channel_setting
+    <<: *ch_default
   - number: 63
-    <<: *channel_setting
+    <<: *ch_default
