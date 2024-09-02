@@ -9,10 +9,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # yaml-cpp, ROOT 라이브러리 찾기
-find_package(yaml-cpp REQUIRED)
 find_package(ryml REQUIRED)
 find_package(c4core REQUIRED)
 find_package(ROOT REQUIRED)
+
+# Qt 라이브러리 찾기
+find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
 
 # 실행 파일을 생성할 소스 파일 설정
 add_executable(test test.cc)
@@ -35,17 +37,23 @@ set(V2740_SOURCES
     CAENV2740.cxx
     CAENV2740Par.cxx
     CAENV2740Event.cxx
+    QCAENV2740.cxx
     # 필요한 다른 소스 파일들을 여기에 추가하세요
 )
 
 # v2740 공유 라이브러리 생성
 add_library(v2740 SHARED ${V2740_SOURCES})
+#set_target_properties(v2740 PROPERTIES
+#    AUTOMOC ON
+#    AUTOUIC ON
+#    AUTORCC ON
+#)
 
 # v2740 라이브러리에 대한 include 디렉토리 설정
 target_include_directories(v2740 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include /usr/local/include /opt/homebrew/include)
 
 # v2740 라이브러리 링크
-target_link_libraries(v2740 PRIVATE ${CAEN_FELib_PATH} yaml-cpp ryml c4core)
+target_link_libraries(v2740 PRIVATE ${CAEN_FELib_PATH} ryml c4core Qt6::Core Qt6::Gui Qt6::Widgets)
 
 # test 실행 파일에 v2740 라이브러리 링크
 target_link_libraries(test PRIVATE v2740)
@@ -54,6 +62,10 @@ target_link_libraries(test PRIVATE v2740)
 add_executable(daq daq.cxx)
 target_link_libraries(daq PRIVATE v2740)
 
+
+# v274x_daq.cxx 컴파일 관련 내용 추가
+add_executable(v274x_daq v274x_daq.cxx)
+target_link_libraries(v274x_daq PRIVATE v2740 Qt6::Widgets)
 
 # daq.cxx 컴파일 관련 내용 추가
 add_executable(readRaw readRaw.cxx)

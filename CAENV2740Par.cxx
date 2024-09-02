@@ -1,7 +1,5 @@
 #include "CAENV2740Par.hxx"
 
-#include <yaml-cpp/yaml.h>
-
 #include <c4/std/string.hpp>
 #include <fstream>
 #include <iostream>
@@ -19,7 +17,7 @@ void CAENV2740Par::loadConfigFile(const std::string& yamlFilePath) {
         conf = ryml::parse_in_arena(ryml::to_csubstr(fileContent));
         conf.resolve();
         filename = yamlFilePath;
-    } catch (const YAML::Exception& e) {
+    } catch (const std::runtime_error& e) {
         throw std::runtime_error("YAML 파일 로드 실패: " + std::string(e.what()));
     }
 }

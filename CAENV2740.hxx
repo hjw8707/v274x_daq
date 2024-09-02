@@ -15,15 +15,21 @@ class CAENV2740 {
     std::string connectionString;
     CAENV2740Event evt;
 
+    bool verbose;
+
    public:
-    CAENV2740(const std::string& connString);
+    CAENV2740();
     ~CAENV2740();
+
+    inline void setVerbose(bool verbose) { this->verbose = verbose; }
+    inline bool getVerbose() { return verbose; }
 
     inline uint64_t getHandle() { return handle; }
     inline const CAENV2740Event& getEvent() { return evt; }
 
-    void connect();
+    void connect(const std::string& str);
     void configure();
+    void close();
 
     void reset();
     void reboot();
@@ -80,7 +86,8 @@ class CAENV2740 {
     void setDataFormatDPPPSDStats();
     void setDataFormatDPPPHAStats();
 
-    int readData();
+    int readData(int timeout = 1000);  // timeout = 1000 [ms]
+    int readDataRaw(int timeout = 1000, uint8_t* data = nullptr, size_t* size = nullptr, uint32_t* n_events = nullptr);
     int readStats();
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -1,8 +1,8 @@
 ch_default: &ch_default # trigger
   wave_trigger_source: disabled # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
   event_trigger_source: chselftrigger # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
-  channels_trigger_mask: 0x0FF # 0x0000 ~ 0xffff
-  wave_saving: always # "Always", "OnRequest"
+  channels_trigger_mask: 0x00 # 0x0000 ~ 0xffff
+  wave_saving: onrequest # "Always", "OnRequest"
   veto_source: disabled # "Disabled", "BoardVeto", "ADCOverSaturation", "ADCUnderSaturation"
   veto_width: 0 # [ns]
   # waveform
@@ -18,7 +18,7 @@ ch_default: &ch_default # trigger
     adc_data #"ADC_DATA", "ADC_TEST_TOGGLE", "ADC_TEST_RAMP",
     #"ADC_TEST_SIN", "ADC_TEST_PRBS", "Ramp", "IPE", "SquareWave"
   # itl:
-  itl_connect: itlb # "Disabled", "ITLA", "ITLB"
+  itl_connect: disabled # "Disabled", "ITLA", "ITLB"
   # input:
   self_trig_width: 64 # [ns]
   enable: false # true, false

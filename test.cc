@@ -46,7 +46,7 @@ int main() {
     par.loadConfigFile("../v2740_psd.yaml");
     par.printConfig();
 
-    CAENV2740 v2740("dig2://192.168.0.10");
+    CAENV2740 v2740;
     v2740.loadParameter(par);
     return 0;
 }

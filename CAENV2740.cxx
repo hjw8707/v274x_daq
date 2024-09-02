@@ -8,18 +8,23 @@ constexpr unsigned int HashCode(const char* str) {
     return str[0] ? static_cast<unsigned int>(str[0]) + 0xEDB8832Full * HashCode(str + 1) : 8603;
 }
 
-CAENV2740::CAENV2740(const std::string& connString) : connectionString(connString), handle(0) {}
+CAENV2740::CAENV2740() : connectionString(""), handle(0), verbose(false) {}
 
 CAENV2740::~CAENV2740() {
     if (handle != 0) {
-        CAEN_FELib_Close(handle);
+        close();
     }
 }
 
-void CAENV2740::connect() {
+void CAENV2740::connect(const std::string& str) {
+    connectionString = str;
     int ret = CAEN_FELib_Open(connectionString.c_str(), &handle);
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("V2740 연결 실패");
+    }
+    if (verbose) {
+        std::cout << "V2740 연결 성공" << std::endl;
+        std::cout << "연결 문자열: " << connectionString << std::endl;
     }
 }
 
@@ -28,6 +33,7 @@ void CAENV2740::reset() {
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("V2740 리셋 실패");
     }
+    if (verbose) std::cout << "V2740 리셋 성공" << std::endl;
 }
 
 void CAENV2740::reboot() {
@@ -35,6 +41,7 @@ void CAENV2740::reboot() {
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("V2740 리부트 실패");
     }
+    if (verbose) std::cout << "V2740 리부트 성공" << std::endl;
 }
 
 void CAENV2740::clear() {
@@ -42,13 +49,21 @@ void CAENV2740::clear() {
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("V2740 클리어 실패");
     }
+    if (verbose) std::cout << "V2740 클리어 성공" << std::endl;
 }
 
 void CAENV2740::configure() {
     // 여기에 V2740 설정 코드를 추가하세요
     // 예: 샘플링 레이트, 트리거 설정 등
 }
-
+void CAENV2740::close() {
+    int ret = CAEN_FELib_Close(handle);
+    if (ret != CAEN_FELib_Success) {
+        throw std::runtime_error("V2740 연결 종료 실패");
+    }
+    handle = 0;
+    if (verbose) std::cout << "V2740 연결 종료 성공" << std::endl;
+}
 void CAENV2740::armAcquisition() {
     int ret = CAEN_FELib_SendCommand(handle, "/cmd/ArmAcquisition");
     if (ret != CAEN_FELib_Success) {
@@ -1026,6 +1041,7 @@ void CAENV2740::setDataFormatRaw() {
         [ \
             { \"name\" : \"DATA\", \"type\" : \"U8\", \"dim\": 1 }, \
             { \"name\" : \"SIZE\", \"type\" : \"SIZE_T\" }, \
+            { \"name\" : \"N_EVENTS\", \"type\" : \"U32\" } \
         ]");
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("데이터 포맷 설정 실패");
@@ -1148,19 +1164,31 @@ void CAENV2740::setDataFormatDPPPHAStats() {
     }
 }
 
-int CAENV2740::readData() {
+int CAENV2740::readData(int timeout) {
     uint64_t ep_handle;
     int ret = CAEN_FELib_GetHandle(handle, "/endpoint/dpppsd", &ep_handle);
     if (ret != CAEN_FELib_Success) {
         throw std::runtime_error("Handle 얻기 실패");
     }
 
-    ret = CAEN_FELib_ReadData(ep_handle, 100, &evt.channel, &evt.timestamp, &evt.fine_timestamp, &evt.energy,
+    ret = CAEN_FELib_ReadData(ep_handle, timeout, &evt.channel, &evt.timestamp, &evt.fine_timestamp, &evt.energy,
                               &evt.energy_short, evt.analog_probes[0], evt.analog_probes[1], evt.digital_probes[0],
                               evt.digital_probes[1], evt.digital_probes[2], evt.digital_probes[3],
                               &evt.analog_probes_type[0], &evt.analog_probes_type[1], &evt.digital_probes_type[0],
                               &evt.digital_probes_type[1], &evt.digital_probes_type[2], &evt.digital_probes_type[3],
                               &evt.n_samples, &evt.flags_low_priority, &evt.flags_high_priority, &evt.event_size);
+
+    return ret;
+}
+
+int CAENV2740::readDataRaw(int timeout, uint8_t* data, size_t* size, uint32_t* n_events) {
+    uint64_t ep_handle;
+    int ret = CAEN_FELib_GetHandle(handle, "/endpoint/raw", &ep_handle);
+    if (ret != CAEN_FELib_Success) {
+        throw std::runtime_error("Handle 얻기 실패");
+    }
+
+    ret = CAEN_FELib_ReadData(ep_handle, timeout, data, size, n_events);
 
     return ret;
 }

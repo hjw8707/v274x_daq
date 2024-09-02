@@ -1,8 +1,6 @@
 #ifndef V2740_PARAMETER_MANAGER_H
 #define V2740_PARAMETER_MANAGER_H
 
-#include <yaml-cpp/yaml.h>
-
 #include <ryml.hpp>
 #include <string>
 
