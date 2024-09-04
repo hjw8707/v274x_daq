@@ -9,8 +9,11 @@
 #include "CAENV2740Par.hxx"
 
 void usage() {
-    std::cerr << "사용법: ./daq [-p] <V2740_IP>\n";
+    std::cerr << "사용법: ./daq [-p] [-c] [-t <시간>] [-o <파일 이름>] <V2740_IP>\n";
     std::cerr << "  -p: 파라미터를 로딩할 때 사용하는 옵션입니다.\n";
+    std::cerr << "  -c: 인코딩된 이벤트를 읽는 옵션입니다.\n";
+    std::cerr << "  -t: 데이터 수집 시간을 지정합니다.\n";
+    std::cerr << "  -o: 출력 파일 이름을 지정합니다.\n";
     std::cerr << "  <V2740_IP>: V2740 모듈의 IP 주소를 지정합니다.\n";
 }
 
@@ -125,7 +128,7 @@ int main(int argc, char* argv[]) {
                 i++;                       // 다음 인자로 넘어가기 위해
             }
         } else if (std::string(argv[i]) == "-c") {
-            flagCoded = true;
+            flagCoded = true;  // 인코딩된 이벤트를 읽는 옵션
         } else {
             ip = argv[i];  // IP 주소 저장
         }
@@ -158,7 +161,7 @@ int main(int argc, char* argv[]) {
 
     // 데이터 수집 설정
     void (*acq_fun)(CAENV2740&, std::ofstream&, int) = rawDataAcquisition;
-    if (flagCoded) {
+    if (flagCoded) {  // 인코딩된 이벤트를 읽는 옵션 (시간이 오래 걸림)
         acq_fun = codedDataAcquisition;
         v2740.setDataFormatDPPPSD();
         v2740.writeActiveEndPoint("dpppsd");

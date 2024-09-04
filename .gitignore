@@ -40,3 +40,7 @@ Thumbs.db
 # 기타 프로젝트 특정 파일
 config.ini
 secrets.json
+
+# 인스톨 디렉토리
+bin/
+lib/
