@@ -7,11 +7,13 @@
 #include "QtWidgets/QApplication"
 #include "QtWidgets/QCheckBox"
 #include "QtWidgets/QFileDialog"
+#include "QtWidgets/QGroupBox"
 #include "QtWidgets/QHBoxLayout"
 #include "QtWidgets/QLabel"
 #include "QtWidgets/QLineEdit"
 #include "QtWidgets/QMainWindow"
 #include "QtWidgets/QMessageBox"
+#include "QtWidgets/QProgressBar"
 #include "QtWidgets/QPushButton"
 #include "QtWidgets/QSpinBox"
 #include "QtWidgets/QStyle"
@@ -152,6 +154,76 @@ void QCAENV2740::initUI() {
     connect(stopButton, &QPushButton::clicked, this, &QCAENV2740::stopDAQ);
     //////////////////////////////////////////////////////////////
 
+    // Digitizer Layout
+    QFrame *digitizerFrame = new QFrame();
+    digitizerFrame->setFrameShape(QFrame::Box);
+    digitizerFrame->setFrameShadow(QFrame::Sunken);
+    digitizerFrame->setLineWidth(1);
+    QVBoxLayout *digitizerLayout = new QVBoxLayout(digitizerFrame);
+    layout->addWidget(digitizerFrame);
+
+    QHBoxLayout *digitizerSettingsLayout = new QHBoxLayout();
+    QLabel *digitizerLabel = new QLabel("Digitizer Settings");
+    applySettingsCheckBox = new QCheckBox("Apply Settings");
+    digitizerSettingsLayout->addWidget(digitizerLabel);
+    digitizerSettingsLayout->addWidget(applySettingsCheckBox);
+    digitizerLayout->addLayout(digitizerSettingsLayout);
+
+    digitizerCHEnableGroupBox = new QGroupBox("CH Enable");
+    QVBoxLayout *digitizerCHEnableLayout = new QVBoxLayout(digitizerCHEnableGroupBox);
+    digitizerLayout->addWidget(digitizerCHEnableGroupBox);
+
+    for (int i = 0; i < 4; i++) {
+        QHBoxLayout *rowLayout = new QHBoxLayout();
+        for (int j = 0; j < 16; j++) {
+            QCheckBox *checkBox = new QCheckBox();
+            checkBox->setText(QString("%1").arg(16 * i + j, 2, 10, QChar('0')));
+            rowLayout->addWidget(checkBox);
+            checkBoxes.append(checkBox);
+        }
+        digitizerCHEnableLayout->addLayout(rowLayout);
+    }
+
+    triggerSettingsGroupBox = new QGroupBox("Trigger Settings");
+    QHBoxLayout *triggerSettingsLayout = new QHBoxLayout(triggerSettingsGroupBox);
+    digitizerLayout->addWidget(triggerSettingsGroupBox);
+
+    QLabel *startSourceLabel = new QLabel("Start Source:");
+    QComboBox *startSourceComboBox = new QComboBox();
+    startSourceComboBox->addItem("EncodedClkIn");
+    startSourceComboBox->addItem("SINlevel");
+    startSourceComboBox->addItem("SINedge");
+    startSourceComboBox->addItem("SWcmd");
+    startSourceComboBox->addItem("LVDS");
+    startSourceComboBox->addItem("P0");
+    startSourceComboBox->setCurrentText("SWcmd");
+    triggerSettingsLayout->addWidget(startSourceLabel);
+    triggerSettingsLayout->addWidget(startSourceComboBox);
+
+    QLabel *globalTrigSourceLabel = new QLabel("Global Trigger Source:");
+    QComboBox *globalTrigSourceComboBox = new QComboBox();
+    globalTrigSourceComboBox->addItem("TrgIn");
+    globalTrigSourceComboBox->addItem("P0");
+    globalTrigSourceComboBox->addItem("SwTrg");
+    globalTrigSourceComboBox->addItem("LVDS");
+    globalTrigSourceComboBox->addItem("ITLA");
+    globalTrigSourceComboBox->addItem("ITLB");
+    globalTrigSourceComboBox->addItem("ITLA_AND_ITLB");
+    globalTrigSourceComboBox->addItem("ITLA_OR_ITLB");
+    globalTrigSourceComboBox->addItem("EncodedClkIn");
+    globalTrigSourceComboBox->addItem("GPIO");
+    globalTrigSourceComboBox->addItem("TestPulse");
+    globalTrigSourceComboBox->addItem("UserTrg");
+    globalTrigSourceComboBox->setCurrentText("SwTrg");
+    triggerSettingsLayout->addWidget(globalTrigSourceLabel);
+    triggerSettingsLayout->addWidget(globalTrigSourceComboBox);
+
+    connect(applySettingsCheckBox, &QCheckBox::stateChanged, this, [this](int state) {
+        bool isChecked = state == Qt::Checked;
+        digitizerCHEnableGroupBox->setEnabled(isChecked);
+        triggerSettingsGroupBox->setEnabled(isChecked);
+    });
+
     //////////////////////////////////////////////////////////////
     // Status Layout
     QHBoxLayout *statusLayout = new QHBoxLayout();
@@ -163,15 +235,28 @@ void QCAENV2740::initUI() {
 
     QLabel *bpsNameLabel = new QLabel("Bytes Per Second : ");
     bytesPerSecondLabel = new QLabel("0 Bytes/s");
+    // 게이지 추가
+    bpsProgressBar = new QProgressBar(this);
+    bpsProgressBar->setRange(0, 1000);  // 최대값 설정 (예: 1000 Bytes/s)
+    bpsProgressBar->setValue(0);        // 초기값 설정
 
     statusLayout->addWidget(statusLabel);
-    statusLayout->addWidget(statusIconLabel);
+    // statusLayout->addWidget(statusIconLabel);
     statusLayout->addWidget(bpsNameLabel);
     statusLayout->addWidget(bytesPerSecondLabel);
-
+    statusLayout->addWidget(bpsProgressBar);
     connect(this, &QCAENV2740::statusUpdated, statusLabel, &QLabel::setText);
-    connect(thread, &DataAcquisitionThread::updateBytesPerSecond, this,
-            [this](size_t bytes) { bytesPerSecondLabel->setText(QString("%1 Bytes/s").arg(bytes)); });
+    // connect(thread, &DataAcquisitionThread::updateBytesPerSecond, this,
+    //         [this](size_t bytes) { bytesPerSecondLabel->setText(QString("%1 Bytes/s").arg(bytes)); });
+    connect(thread, &DataAcquisitionThread::updateBytesPerSecond, this, [this](size_t bytes) {
+        bytesPerSecondLabel->setText(QString("%1 Bytes/s").arg(bytes));
+        bpsProgressBar->setValue(static_cast<int>(bytes));  // 게이지 업데이트
+    });
+
+    QHBoxLayout *statusLayout2 = new QHBoxLayout();
+    layout->addLayout(statusLayout2);
+    filenameLabel = new QLabel("Saving to file: ");
+    statusLayout2->addWidget(filenameLabel);
 
     // 초기 상태 설정
     setStatus(0);
@@ -205,17 +290,26 @@ void QCAENV2740::disconnectDAQ() {
 }
 
 void QCAENV2740::exitDAQ() {
-    daq->close();
-    delete daq;
-    exit(0);
+    if (currentStatus != 0) {
+        // daq->close();
+    }
+    // delete daq;
+    //  exit(0);
+    this->close();
 }
 
 void QCAENV2740::loadParameter() {
     // 파일 다이얼로그를 열어 파일 경로 선택
-    QString filePath = QFileDialog::getOpenFileName(this, "Select Parameter File", "", "All Files (*)");
+    QString filePath = QFileDialog::getOpenFileName(this, "Select Parameter File", "",
+                                                    "YAML Files (*.yml *.yaml);;JSON Files (*.json)");
     if (!filePath.isEmpty()) {
+        try {
+            par->loadConfigFile(filePath.toStdString());
+        } catch (const std::exception &e) {
+            QMessageBox::critical(this, "Error", "파일이 적절한 yaml 형식이 아닙니다.");
+            filePath = "";
+        }
         parameterLineEdit->setText(filePath);
-        par->loadConfigFile(filePath.toStdString());
     }
 }
 
@@ -246,13 +340,23 @@ void QCAENV2740::loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWidget *
                                              : ""));
         if (node.is_map()) {
             for (const auto &subNode : node) {
+                QString value;
+                if (subNode.has_val()) {
+                    value = QString::fromStdString(std::string(subNode.val().data(), subNode.val().size()));
+                } else if (subNode.is_seq()) {
+                    value = "[";
+                    for (const auto &subSubNode : subNode) {
+                        value +=
+                            QString::fromStdString(std::string(subSubNode.val().data(), subSubNode.val().size())) + ",";
+                    }
+                    value = value.left(value.length() - 1) + "]";
+                } else {
+                    value = "";
+                }
                 QTreeWidgetItem *subItem = new QTreeWidgetItem(
                     item,
                     QStringList() << QString::fromStdString(std::string(subNode.key().data(), subNode.key().size()))
-                                  << (subNode.has_val() ? QString::fromStdString(
-                                                              std::string(subNode.val().data(), subNode.val().size()))
-                                                        : ""));
-                item->addChild(subItem);
+                                  << value);
             }
         }
         if (node.is_seq()) {
@@ -260,17 +364,25 @@ void QCAENV2740::loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWidget *
                 std::string number;
                 subNode["number"] >> number;
                 QTreeWidgetItem *subItem = new QTreeWidgetItem(item, QStringList() << QString::fromStdString(number));
-                item->addChild(subItem);
                 for (const auto &subSubNode : subNode) {
-                    QTreeWidgetItem *subSubItem =
-                        new QTreeWidgetItem(
-                            subItem,
-                            QStringList()
-                                << QString::fromStdString(std::string(subSubNode.key().data(), subSubNode.key().size()))
-                                << (subSubNode.has_val() ? QString::fromStdString(std::string(subSubNode.val().data(),
-                                                                                              subSubNode.val().size()))
-                                                         : ""));
-                    subItem->addChild(subSubItem);
+                    QString value;
+                    if (subNode.has_val()) {
+                        value = QString::fromStdString(std::string(subNode.val().data(), subNode.val().size()));
+                    } else if (subNode.is_seq()) {
+                        value = "[";
+                        for (const auto &subSubNode : subNode) {
+                            value +=
+                                QString::fromStdString(std::string(subSubNode.val().data(), subSubNode.val().size())) +
+                                ",";
+                        }
+                        value = value.left(value.length() - 1) + "]";
+                    } else {
+                        value = "";
+                    }
+                    QTreeWidgetItem *subSubItem = new QTreeWidgetItem(
+                        subItem, QStringList() << QString::fromStdString(
+                                                      std::string(subSubNode.key().data(), subSubNode.key().size()))
+                                               << value);
                 }
             }
         }
@@ -296,6 +408,9 @@ void QCAENV2740::runDAQ() {
             return;
         }
     }
+    applySettings();
+
+    filenameLabel->setText("Saving to file: " + QFileInfo(QString::fromStdString(fileName)).absoluteFilePath());
     fout.open(fileName, std::ios::binary);
 
     // 측정 시간이 0보다 큰 경우 QTimer 설정
@@ -326,6 +441,7 @@ void QCAENV2740::stopDAQ() {
 
     if (autoIncCheckBox->isChecked()) runNumberSpinBox->setValue(runNumberSpinBox->value() + 1);
     bytesPerSecondLabel->setText("0 Bytes/s");
+    bpsProgressBar->setValue(0);
     setStatus(1);
 
     if (timer) {  // 타이머가 존재할 경우 정지
@@ -362,6 +478,9 @@ void QCAENV2740::setStatus(int status) {
     runButton->setEnabled(!isRunning && isConnected);
     stopButton->setEnabled(isRunning);
 
+    applySettingsCheckBox->setEnabled(!isRunning && isConnected);
+    digitizerCHEnableGroupBox->setEnabled(applySettingsCheckBox->isChecked() && isConnected && !isRunning);
+
     switch (currentStatus) {
         case 0:
             statusText = "Status: Disconnected";
@@ -381,4 +500,9 @@ void QCAENV2740::setStatus(int status) {
     }
     std::cout << "statusText: " << statusText.toStdString() << std::endl;
     emit statusUpdated(statusText);  // 상태가 변경될 때 시그널 발송
+}
+
+void QCAENV2740::applySettings() {
+    if (!applySettingsCheckBox->isChecked()) return;
+    for (int i = 0; i < 64; i++) daq->writeChEnable(i, checkBoxes[i]->isChecked());
 }

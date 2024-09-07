@@ -17,7 +17,7 @@ void CAENV2740Par::loadConfigFile(const std::string& yamlFilePath) {
         conf = ryml::parse_in_arena(ryml::to_csubstr(fileContent));
         conf.resolve();
         filename = yamlFilePath;
-    } catch (const std::runtime_error& e) {
+    } catch (const std::exception& e) {
         throw std::runtime_error("YAML 파일 로드 실패: " + std::string(e.what()));
     }
 }

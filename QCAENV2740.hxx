@@ -8,14 +8,21 @@
 #include "QtCore/QElapsedTimer"
 #include "QtCore/QThread"
 #include "QtCore/QTimer"
+#include "QtGui/QStandardItem"
+#include "QtGui/QStandardItemModel"
 #include "QtWidgets/QCheckBox"
+#include "QtWidgets/QComboBox"
+#include "QtWidgets/QGroupBox"
 #include "QtWidgets/QLabel"
 #include "QtWidgets/QLineEdit"
+#include "QtWidgets/QListView"
 #include "QtWidgets/QMainWindow"
+#include "QtWidgets/QProgressBar"
 #include "QtWidgets/QPushButton"
 #include "QtWidgets/QSpinBox"
 #include "QtWidgets/QTreeWidget"
-
+#include "QtWidgets/QVBoxLayout"
+#include "QtWidgets/QWidget"
 class DataAcquisitionThread : public QThread {
     Q_OBJECT
    public:
@@ -31,8 +38,10 @@ class DataAcquisitionThread : public QThread {
             //////////////////////////////////////////////////////////////
             // 테스트용
             int ret = CAEN_FELib_Success;
-            size = 1;
-            data[0] = nbunch;
+            size = nbunch % 100;
+            for (int i = 0; i < size; i++) {
+                data[i] = nbunch;
+            }
 
             QThread::msleep(100);  // sleep 함수 호출
             //////////////////////////////////////////////////////////////
@@ -117,6 +126,8 @@ class QCAENV2740 : public QMainWindow {
 
     void setStatus(int status);
 
+    void applySettings();
+
     // 위젯
     QLineEdit *ipLineEdit;
     QLineEdit *parameterLineEdit;
@@ -125,9 +136,18 @@ class QCAENV2740 : public QMainWindow {
     QCheckBox *autoIncCheckBox;
     QSpinBox *measurementTimeSpinBox;
     QLabel *bytesPerSecondLabel;
+    QProgressBar *bpsProgressBar;
     QLabel *statusLabel;
     QLabel *statusIconLabel;
+    QLabel *filenameLabel;
     QTimer *timer;
+
+    QCheckBox *applySettingsCheckBox;
+    QGroupBox *digitizerCHEnableGroupBox;
+    QGroupBox *triggerSettingsGroupBox;
+    // QCheckBox를 QList로 관리하여 동적으로 생성
+    QList<QCheckBox *> checkBoxes;
+
     QPushButton *connectButton;
     QPushButton *clearButton;
     QPushButton *resetButton;
