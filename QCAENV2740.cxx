@@ -22,12 +22,12 @@
 #include "QtWidgets/QVBoxLayout"
 #include "QtWidgets/QWidget"
 
-QCAENV2740::QCAENV2740(QWidget *parent) : currentStatus(-1), QMainWindow(parent) {
+QCAENV2740::QCAENV2740(QWidget *parent) : verbose(false), currentStatus(-1), QMainWindow(parent) {
     setWindowTitle("V274X DAQ");
     setWindowIcon(QIcon("icons/dig_v2740.png"));
 
     timer = new QTimer(this);
-
+    verbose = true;
     // CAENV2740 초기화
     initDAQ();
     // GUI 초기화
@@ -129,7 +129,7 @@ void QCAENV2740::initUI() {
     runNumberSpinBox->setValue(0);
     autoIncCheckBox = new QCheckBox("Auto Inc.");
     autoIncCheckBox->setChecked(true);
-    QLabel *measurementTimeLabel = new QLabel("Measurement Time (s):");
+    QLabel *measurementTimeLabel = new QLabel("Set Time (s):");
     measurementTimeSpinBox = new QSpinBox();
     measurementTimeSpinBox->setRange(0, 999999);
     measurementTimeSpinBox->setSingleStep(1);
@@ -137,6 +137,7 @@ void QCAENV2740::initUI() {
 
     runLayout->addWidget(measurementTimeLabel);
     runLayout->addWidget(measurementTimeSpinBox);
+    runNSButton = new QPushButton("&Run(NS)");
     runButton = new QPushButton("&Run");
     stopButton = new QPushButton("&Stop");
 
@@ -147,10 +148,12 @@ void QCAENV2740::initUI() {
     runLayout->addWidget(autoIncCheckBox);
     runLayout->addWidget(measurementTimeLabel);
     runLayout->addWidget(measurementTimeSpinBox);
+    runLayout->addWidget(runNSButton);
     runLayout->addWidget(runButton);
     runLayout->addWidget(stopButton);
 
     connect(runButton, &QPushButton::clicked, this, &QCAENV2740::runDAQ);
+    connect(runNSButton, &QPushButton::clicked, this, &QCAENV2740::runNSDAQ);
     connect(stopButton, &QPushButton::clicked, this, &QCAENV2740::stopDAQ);
     //////////////////////////////////////////////////////////////
 
@@ -215,6 +218,7 @@ void QCAENV2740::initUI() {
     globalTrigSourceComboBox->addItem("TestPulse");
     globalTrigSourceComboBox->addItem("UserTrg");
     globalTrigSourceComboBox->setCurrentText("SwTrg");
+
     triggerSettingsLayout->addWidget(globalTrigSourceLabel);
     triggerSettingsLayout->addWidget(globalTrigSourceComboBox);
 
@@ -232,32 +236,37 @@ void QCAENV2740::initUI() {
     statusLabel = new QLabel("Status: Stopped");
     statusIconLabel = new QLabel();
     statusIconLabel->setPixmap(style()->standardPixmap(QStyle::SP_MediaStop));
-
+    elapsedTimeLabel = new QLabel("Elapsed Time: ");
+    elapsedTimeLabel->setAlignment(Qt::AlignCenter);
+    elapsedTimeLabel->setFixedWidth(200);
     QLabel *bpsNameLabel = new QLabel("Bytes Per Second : ");
     bytesPerSecondLabel = new QLabel("0 Bytes/s");
     // 게이지 추가
     bpsProgressBar = new QProgressBar(this);
-    bpsProgressBar->setRange(0, 1000);  // 최대값 설정 (예: 1000 Bytes/s)
-    bpsProgressBar->setValue(0);        // 초기값 설정
+    bpsProgressBar->setRange(0, 1000000);  // 최대값 설정 (예: 1000000 Bytes/s)
+    bpsProgressBar->setValue(0);           // 초기값 설정
 
     statusLayout->addWidget(statusLabel);
     // statusLayout->addWidget(statusIconLabel);
+    statusLayout->addWidget(elapsedTimeLabel);
     statusLayout->addWidget(bpsNameLabel);
     statusLayout->addWidget(bytesPerSecondLabel);
     statusLayout->addWidget(bpsProgressBar);
     connect(this, &QCAENV2740::statusUpdated, statusLabel, &QLabel::setText);
-    // connect(thread, &DataAcquisitionThread::updateBytesPerSecond, this,
-    //         [this](size_t bytes) { bytesPerSecondLabel->setText(QString("%1 Bytes/s").arg(bytes)); });
-    connect(thread, &DataAcquisitionThread::updateBytesPerSecond, this, [this](size_t bytes) {
-        bytesPerSecondLabel->setText(QString("%1 Bytes/s").arg(bytes));
-        bpsProgressBar->setValue(static_cast<int>(bytes));  // 게이지 업데이트
+    connect(thread, &DataAcquisitionThread::updateMeasurementTime, this, [this](qint64 time) {
+        elapsedTimeLabel->setText(QString("Elapsed Time: %1 s").arg(time / 1000., 0, 'f', 1));
+    });
+    connect(thread, &DataAcquisitionThread::updateBytesPerSecond, this, [this](float bps) {
+        bytesPerSecondLabel->setText(QString("%1 Bytes/s").arg(bps, 0, 'f', 1));
+        bpsProgressBar->setValue(static_cast<int>(bps));  // 게이지 업데이트
     });
 
     QHBoxLayout *statusLayout2 = new QHBoxLayout();
     layout->addLayout(statusLayout2);
     filenameLabel = new QLabel("Saving to file: ");
+    fileSizeLabel = new QLabel("File Size: 0 kBytes");
     statusLayout2->addWidget(filenameLabel);
-
+    statusLayout2->addWidget(fileSizeLabel);
     // 초기 상태 설정
     setStatus(0);
     //////////////////////////////////////////////////////////////
@@ -265,16 +274,23 @@ void QCAENV2740::initUI() {
 
 void QCAENV2740::initDAQ() {
     daq = new CAENV2740();
-    daq->setVerbose(true);
+    daq->setVerbose(verbose);
 
     par = new CAENV2740Par();
 
-    thread = new DataAcquisitionThread();
+    thread = new DataAcquisitionThread(daq);
 }
 
 void QCAENV2740::connectDAQ() {
+    if (verbose) std::cout << "connectDAQ" << std::endl;
+    if (verbose) std::cout << "currentStatus: " << currentStatus << std::endl;
     if (currentStatus != 0) return;  // 현재 상태가 0(Disconnected)이 아니면 실행하지 않음
-    // daq->connect("dig2://" + ipLineEdit->text().toStdString());
+    try {
+        daq->connect("dig2://" + ipLineEdit->text().toStdString());
+    } catch (const std::exception &e) {
+        QMessageBox::critical(this, "Error", "연결 실패");
+        return;
+    }
     setStatus(1);
 }
 
@@ -285,16 +301,16 @@ void QCAENV2740::resetDAQ() { daq->reset(); }
 void QCAENV2740::rebootDAQ() { daq->reboot(); }
 
 void QCAENV2740::disconnectDAQ() {
-    // daq->close();
+    if (verbose) std::cout << "disconnectDAQ" << std::endl;
+    if (verbose) std::cout << "currentStatus: " << currentStatus << std::endl;
+    daq->close();
     setStatus(0);
 }
 
 void QCAENV2740::exitDAQ() {
-    if (currentStatus != 0) {
-        // daq->close();
-    }
-    // delete daq;
-    //  exit(0);
+    if (verbose) std::cout << "exitDAQ" << std::endl;
+    if (verbose) std::cout << "currentStatus: " << currentStatus << std::endl;
+    if (currentStatus != 0) daq->close();
     this->close();
 }
 
@@ -391,6 +407,12 @@ void QCAENV2740::loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWidget *
 
 void QCAENV2740::applyParameter() { daq->loadParameter(*par); }
 
+void QCAENV2740::runNSDAQ() {
+    if (currentStatus != 1) return;
+    nosave = true;  // 현재 상태가 1(Stopped)이 아니면 실행하지 않음
+    runDAQ();
+}
+
 void QCAENV2740::runDAQ() {
     if (currentStatus != 1) return;  // 현재 상태가 1(Stopped)이 아니면 실행하지 않음
 
@@ -398,7 +420,7 @@ void QCAENV2740::runDAQ() {
     int runNumber = runNumberSpinBox->value();
     std::string fileName = runName + QString("%1").arg(runNumber, 4, 10, QChar('0')).toStdString() + ".dat";
     std::ifstream fileCheck(fileName);
-    if (fileCheck.is_open()) {
+    if (!nosave && fileCheck.is_open()) {
         QMessageBox::StandardButton reply;
         reply = QMessageBox::question(
             this, "파일 존재 확인",
@@ -410,19 +432,27 @@ void QCAENV2740::runDAQ() {
     }
     applySettings();
 
-    filenameLabel->setText("Saving to file: " + QFileInfo(QString::fromStdString(fileName)).absoluteFilePath());
-    fout.open(fileName, std::ios::binary);
+    if (nosave) {
+        filenameLabel->setText("Not saving to file");
+    } else {
+        filenameLabel->setText("Saving to file: " + QFileInfo(QString::fromStdString(fileName)).absoluteFilePath());
+        fout.open(fileName, std::ios::binary);
+    }
+    fileSizeLabel->setText("File Size: - kBytes");
 
     // 측정 시간이 0보다 큰 경우 QTimer 설정
-    if (measurementTimeSpinBox->value() > 0) {
-        connect(timer, &QTimer::timeout, this, &QCAENV2740::stopDAQ);
-        timer->start(measurementTimeSpinBox->value() * 1000);  // 밀리초로 변환
-    }
-    // daq->clear();
-    // daq->armAcquisition();
-    // daq->startAcquisition();
-    std::cout << "runDAQ" << std::endl;
-    connect(thread, &DataAcquisitionThread::dataAcquired, this, &QCAENV2740::handleData);
+    if (measurementTimeSpinBox->value() > 0) connect(timer, &QTimer::timeout, this, &QCAENV2740::stopDAQ);
+
+    if (nosave)
+        thread->setFout(nullptr);
+    else
+        thread->setFout(&fout);
+
+    daq->clear();
+    daq->armAcquisition();
+    daq->startAcquisition();
+    if (measurementTimeSpinBox->value() > 0) timer->start(measurementTimeSpinBox->value() * 1000);  // 밀리초로 변환
+    if (verbose) std::cout << "runDAQ" << std::endl;
 
     thread->start();
     setStatus(2);
@@ -430,26 +460,28 @@ void QCAENV2740::runDAQ() {
 
 void QCAENV2740::stopDAQ() {
     if (currentStatus != 2) return;  // 현재 상태가 2(Running)이 아니면 실행하지 않음
-    // daq->stopAcquisition();
-    // daq->disarmAcquisition();
-    std::cout << "stopDAQ" << std::endl;
+    daq->stopAcquisition();
+    daq->disarmAcquisition();
+    if (verbose) std::cout << "stopDAQ" << std::endl;
     thread->requestInterruption();  // 종료 신호 전송
     thread->quit();
     thread->wait();
 
-    fout.close();
-
     if (autoIncCheckBox->isChecked()) runNumberSpinBox->setValue(runNumberSpinBox->value() + 1);
     bytesPerSecondLabel->setText("0 Bytes/s");
     bpsProgressBar->setValue(0);
+
+    fileSizeLabel->setText(QString("File Size: %1 kBytes").arg(fout.tellp() / 1024));
+    fout.close();
+
     setStatus(1);
 
     if (timer) {  // 타이머가 존재할 경우 정지
         timer->stop();
     }
-}
 
-void QCAENV2740::handleData(uint8_t *data, size_t size) { fout.write(reinterpret_cast<char *>(data), size); }
+    nosave = false;
+}
 
 void QCAENV2740::setStatus(int status) {
     currentStatus = status;
@@ -476,10 +508,12 @@ void QCAENV2740::setStatus(int status) {
     // viewButton->setEnabled(!isRunning && !isConnected);
     applyButton->setEnabled(!isRunning && isConnected);
     runButton->setEnabled(!isRunning && isConnected);
+    runNSButton->setEnabled(!isRunning && isConnected);
     stopButton->setEnabled(isRunning);
 
     applySettingsCheckBox->setEnabled(!isRunning && isConnected);
     digitizerCHEnableGroupBox->setEnabled(applySettingsCheckBox->isChecked() && isConnected && !isRunning);
+    triggerSettingsGroupBox->setEnabled(applySettingsCheckBox->isChecked() && isConnected && !isRunning);
 
     switch (currentStatus) {
         case 0:
@@ -498,7 +532,7 @@ void QCAENV2740::setStatus(int status) {
             statusText = "Status: Unknown";
             break;
     }
-    std::cout << "statusText: " << statusText.toStdString() << std::endl;
+    if (verbose) std::cout << "statusText: " << statusText.toStdString() << std::endl;
     emit statusUpdated(statusText);  // 상태가 변경될 때 시그널 발송
 }
 

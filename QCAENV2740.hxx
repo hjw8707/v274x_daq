@@ -26,59 +26,60 @@
 class DataAcquisitionThread : public QThread {
     Q_OBJECT
    public:
+    DataAcquisitionThread(CAENV2740 *daq) : daq(daq), fout(nullptr) {}
+    void setFout(std::ofstream *fout) { this->fout = fout; }
+
     void run() override {
         size_t size = 0;
         uint8_t *data = new uint8_t[2621440];
+        uint32_t nevent_raw = 0;
         uint64_t nbunch = 0;
+        uint32_t prev_aggregate_counter = 0;
         size_t totalBytes = 0;  // 총 전송된 바이트 수
+        qint64 totalTime = 0;   // 총 측정 시간
         QElapsedTimer timer;    // 타이머 추가
         timer.start();          // 타이머 시작
         while (!isInterruptionRequested()) {
-            // int ret = daq->readDataRaw(1000, data, &size, &nevent_raw);
-            //////////////////////////////////////////////////////////////
-            // 테스트용
-            int ret = CAEN_FELib_Success;
-            size = nbunch % 100;
-            for (int i = 0; i < size; i++) {
-                data[i] = nbunch;
-            }
+            int ret = daq->readDataRaw(1000, data, &size, &nevent_raw);
 
-            QThread::msleep(100);  // sleep 함수 호출
-            //////////////////////////////////////////////////////////////
             switch (ret) {
                 case CAEN_FELib_Success:
-                    emit dataAcquired(data, size);
+                    // emit dataAcquired(data, size);
+                    if (fout) fout->write(reinterpret_cast<char *>(data), size);
                     nbunch++;
                     break;
                 case CAEN_FELib_Timeout:
-                    std::cout << "Bunch: " << nbunch << "\n";
                     return;  // break;
                 case CAEN_FELib_Stop:
-                    std::cout << "Bun ch: " << nbunch << "\n";
                     return;
                 default:
                     // 데이터 읽기 실패
                     break;
             }
 
-            if (!(nbunch % 100)) {
-                std::cout << "Bunch: " << nbunch << "\r";
-                std::cout.flush();
-            }
             totalBytes += size;  // 전송된 바이트 수 누적
             // 초당 전송된 바이트 수 업데이트
-            if (timer.elapsed() >= 1000) {              // 1초마다
-                emit updateBytesPerSecond(totalBytes);  // 시그널 전송
-                totalBytes = 0;                         // 카운터 초기화
-                timer.restart();                        // 타이머 재시작
+            if (timer.elapsed() >= 1000) {
+                totalTime += timer.elapsed();                                     // 1초마다
+                emit updateBytesPerSecond(totalBytes * 1000. / timer.elapsed());  // 시그널 전송
+                emit updateMeasurementTime(totalTime);                            // 측정 시간 업데이트
+                totalBytes = 0;   // 카운터 초기화                                  // 측정 시간 업데이트
+                timer.restart();  // 타이머 재시작
             }
         }
-        std::cout << "Bunch: " << nbunch << "\n";
+        totalTime += timer.elapsed();
+        emit updateMeasurementTime(totalTime);
+        emit updateBytesPerSecond(0.0);
     }
 
    signals:
     void dataAcquired(uint8_t *data, size_t size);
-    void updateBytesPerSecond(size_t bytes);  // 바이트 수 업데이트 시그널
+    void updateBytesPerSecond(float bps);     // 바이트 수 업데이트 시그널
+    void updateMeasurementTime(qint64 time);  // 측정 시간 업데이트 시그널
+
+   private:
+    CAENV2740 *daq;
+    std::ofstream *fout;
 };
 class QCAENV2740 : public QMainWindow {
     Q_OBJECT
@@ -90,21 +91,28 @@ class QCAENV2740 : public QMainWindow {
     QCAENV2740(QWidget *parent = nullptr);
     virtual ~QCAENV2740();  // 가상 소멸자 추가
 
+    void setIPAddress(const QString &ipAddress) { ipLineEdit->setText(ipAddress); }
+    QString getIPAddress() const { return ipLineEdit->text(); }
+
+    void connectDAQ();
+
    private:
+    bool verbose;
+    bool nosave;
+    // QString ipAddress;
     int currentStatus;
+    uint32_t prev_aggregate_counter;
 
     CAENV2740 *daq;     // CAENV2740 객체
     CAENV2740Par *par;  // CAENV2740 Parameter 객체
 
     DataAcquisitionThread *thread;
-    // QThread *thread;  // DAQ를 위한 QThread 객체
 
     std::ofstream fout;
 
     void initUI();
     void initDAQ();
 
-    void connectDAQ();
     void clearDAQ();
     void resetDAQ();
     void rebootDAQ();
@@ -112,9 +120,10 @@ class QCAENV2740 : public QMainWindow {
     void exitDAQ();
 
     void runDAQ();
+    void runNSDAQ();
     void stopDAQ();
 
-    void rawDataAcquisition();
+    // void rawDataAcquisition();
 
     void loadParameter();
     void viewParameter();
@@ -138,8 +147,11 @@ class QCAENV2740 : public QMainWindow {
     QLabel *bytesPerSecondLabel;
     QProgressBar *bpsProgressBar;
     QLabel *statusLabel;
+    QLabel *elapsedTimeLabel;
     QLabel *statusIconLabel;
     QLabel *filenameLabel;
+    QLabel *fileSizeLabel;
+
     QTimer *timer;
 
     QCheckBox *applySettingsCheckBox;
@@ -158,6 +170,7 @@ class QCAENV2740 : public QMainWindow {
     QPushButton *viewButton;
     QPushButton *applyButton;
     QPushButton *runButton;
+    QPushButton *runNSButton;
     QPushButton *stopButton;
 };
 

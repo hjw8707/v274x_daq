@@ -104,7 +104,7 @@ class CAENV2740Reader {
             std::cout << "channel_mask: 0x" << std::uppercase << std::hex << std::setfill('0') << std::setw(16)
                       << channel_mask << std::endl;
             std::cout << std::dec;
-            getchar();
+            // getchar();
         }
     }
 
@@ -152,7 +152,7 @@ class CAENV2740Reader {
             std::cout << "energy_short: " << energy_short << std::endl;
             std::cout << "fine_timestamp: " << fine_timestamp << std::endl;
             std::cout << "energy: " << energy << std::endl;
-            getchar();
+            // getchar();
         }
     }
 
@@ -162,6 +162,7 @@ class CAENV2740Reader {
         int nWords = 0;
         bool flush;
         bool board_good;
+        int prev_aggregate_counter = 0;
         int aggregate_counter;
         uint64_t data[10];
 
@@ -177,7 +178,11 @@ class CAENV2740Reader {
             flush = (data[0] >> 56) & 0x1;                   // 56 비트 추출
             board_good = (data[0] >> 59) & 0x1;              // 59 비트 추출
             eventType = (data[0] >> 60) & 0xF;               // 60 ~ 63 비트 추출
-
+            if (aggregate_counter != prev_aggregate_counter + 1) {
+                std::cerr << "Aggregate Counter Error: " << prev_aggregate_counter << " -> " << aggregate_counter
+                          << std::endl;
+            }  // aggregate_counter validity check
+            prev_aggregate_counter = aggregate_counter;
             if (flagVerbose) {
                 std::cout << "nWords: " << nWords << std::endl;
                 std::cout << "aggregate_counter: " << aggregate_counter << std::endl;
@@ -202,10 +207,14 @@ class CAENV2740Reader {
                     for (int i = 1; i < nWords; i++) {
                         inputFile.read(reinterpret_cast<char *>(&data[j]), sizeof(data[j]));
                         data[j] = __builtin_bswap64(data[j]);
+                        //  std::cout << "\r현재까지 읽은 워드 수: " << i << ", " << std::hex << data[j]
+                        //           << std::endl;  // 진행 상황 출력
+                        // std::cout << std::dec;
                         if ((data[j++] >> 63) & 0x1) {
                             eventParser(data, j);
+                            eventCount++;
                             j = 0;
-                        }
+                        }  // 이벤트 수 증가
                     }
                     break;
                 case 3:
@@ -226,14 +235,27 @@ class CAENV2740Reader {
                         }
                         stopRunParser(data);
                     } else {
-                        std::cerr << "알 수 없는 이벤트 코드: " << runEvent << std::endl;
+                        std::cerr << "Special Event Code Error: " << runEvent << std::endl;
+                        getchar();
                     }
                     break;
                 default:
-                    std::cerr << "알 수 없는 이벤트 코드: " << eventType << std::endl;
+                    if (flagVerbose) {
+                        std::cerr << "Unknown Event Code: " << eventType << std::endl;
+                        std::cout << "nWords: " << nWords << std::endl;
+                        std::cout << "aggregate_counter: " << aggregate_counter << std::endl;
+                        std::cout << "flush: " << flush << std::endl;
+                        std::cout << "board_good: " << board_good << std::endl;
+                        std::cout << "eventType: " << eventType << std::endl;
+                        getchar();
+                    }
                     break;
             }
+            if (eventCount % 100 == 0) {
+                std::cout << "\rEvent Count: " << eventCount << std::flush;  // 진행 상황 출력
+            }
         }
+        std::cout << "Event Count: " << eventCount << std::endl;
     }
 };
 
@@ -254,6 +276,7 @@ int main(int argc, char *argv[]) {
     CAENV2740Reader reader;  // CAENV2740Reader 객체 생성
     reader.InitInput(argv[1]);
     reader.InitOutput();
+    // reader.SetVerbose(true);
 
     if (isCodedEvent)
         reader.ReadCAENV2740CodedEvent();
