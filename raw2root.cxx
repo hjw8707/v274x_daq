@@ -23,8 +23,8 @@ class CAENV2740Reader {
         }
     }
 
-    void InitOutput() {
-        file = new TFile("output.root", "RECREATE");            // ROOT 파일 생성
+    void InitOutput(std::string outputFilename = "output.root") {
+        file = new TFile(outputFilename.c_str(), "RECREATE");   // ROOT 파일 생성
         tree = new TTree("EventTree", "CAENV2740 Event Tree");  // ROOT 트리 생성
 
         // 트리에 저장할 데이터 브랜치 정의
@@ -262,20 +262,30 @@ class CAENV2740Reader {
 // main 함수 수정
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        std::cerr << "사용법: ./readRaw <파일 이름> [-c]" << std::endl;
+        std::cerr << "사용법: ./readRaw <파일 이름> [-c] [-o <출력 파일 이름>]" << std::endl;
         std::cerr << "  -c: 인코딩된 이벤트를 읽습니다." << std::endl;
+        std::cerr << "  -o <출력 파일 이름>: 출력 파일 이름을 지정합니다." << std::endl;
         return 1;
     }
     bool isCodedEvent = false;
+    std::string outputFile = "";
     for (int i = 2; i < argc; i++) {
         if (std::string(argv[i]) == "-c") {
             isCodedEvent = true;
-            break;
+        } else if (std::string(argv[i]) == "-o") {
+            if (i + 1 < argc) {
+                outputFile = argv[i + 1];
+                i++;  // 다음 인자로 넘어가기 위해
+            } else {
+                std::cerr << "출력 파일 이름이 지정되지 않았습니다." << std::endl;
+                return 1;
+            }
         }
     }
+
     CAENV2740Reader reader;  // CAENV2740Reader 객체 생성
     reader.InitInput(argv[1]);
-    reader.InitOutput();
+    reader.InitOutput(outputFile);
     // reader.SetVerbose(true);
 
     if (isCodedEvent)
