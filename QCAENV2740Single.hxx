@@ -1,5 +1,5 @@
-#ifndef QCAENV2740_H
-#define QCAENV2740_H
+#ifndef QCAENV2740SINGLE_H
+#define QCAENV2740SINGLE_H
 
 #include <fstream>
 
@@ -60,15 +60,15 @@ class DataAcquisitionThread : public QThread {
  * @brief This class is the QCAENV2740 class.
  * @details It is responsible for the main window of the application.
  */
-class QCAENV2740 : public QMainWindow {
+class QCAENV2740Single : public QMainWindow {
     Q_OBJECT
 
    signals:
     void statusUpdated(const QString &status);  // 상태 업데이트 시그널
 
    public:
-    QCAENV2740(QWidget *parent = nullptr);
-    virtual ~QCAENV2740();  // 가상 소멸자 추가
+    QCAENV2740Single(QWidget *parent = nullptr);
+    virtual ~QCAENV2740Single();  // 가상 소멸자 추가
 
     void setIPAddress(const QString &ipAddress) { ipLineEdit->setText(ipAddress); }
     QString getIPAddress() const { return ipLineEdit->text(); }

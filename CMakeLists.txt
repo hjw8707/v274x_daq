@@ -33,9 +33,10 @@ set(V2740_SOURCES
     CAENV2740.cxx
     CAENV2740Par.cxx
     CAENV2740Event.cxx
-    QCAENV2740.cxx
+    QCAENV2740Single.cxx
     SharedMemory.cxx
     OnlineMonitor.cxx
+    QCAENV274XMulti.cxx
     # 필요한 다른 소스 파일들을 여기에 추가하세요
 )
 #########################################################################
@@ -110,6 +111,19 @@ target_link_libraries(v274x_daq PRIVATE v2740 Qt6::Widgets ${ROOT_LIBRARIES})
 install(TARGETS v274x_daq
     RUNTIME DESTINATION bin
     BUNDLE DESTINATION bin  # BUNDLE DESTINATION 추가
+)
+#########################################################################
+
+#########################################################################
+# v274xm_daq: Qt application for data acquisition
+#########################################################################
+# v274xm_daq.cxx 컴파일 관련 내용 추가
+add_executable(v274xm_daq v274xm_daq.cxx)
+target_link_libraries(v274xm_daq PRIVATE v2740 Qt6::Widgets ${ROOT_LIBRARIES})
+
+# v274xm_daq 실행 파일 설치
+install(TARGETS v274xm_daq
+    RUNTIME DESTINATION bin
 )
 #########################################################################
 
