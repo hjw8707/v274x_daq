@@ -22,13 +22,76 @@
 #include "QtWidgets/QVBoxLayout"
 #include "QtWidgets/QWidget"
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// DataAcquisitionThread
+//
+// @brief 데이터 수집 스레드
+// @details 데이터 수집 스레드는 데이터를 수집하고 처리하는 스레드입니다.
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/**
+ * @brief This function is the run method of the DataAcquisitionThread class.
+ * @details It is responsible for running the data acquisition thread.
+ */
+void DataAcquisitionThread::run() {
+    size_t size = 0;
+    uint8_t *data = new uint8_t[2621440];
+    uint32_t nevent_raw = 0;
+    uint64_t nbunch = 0;
+    uint32_t prev_aggregate_counter = 0;
+    size_t totalBytes = 0;  // 총 전송된 바이트 수
+    qint64 totalTime = 0;   // 총 측정 시간
+    QElapsedTimer timer;    // 타이머 추가
+    timer.start();          // 타이머 시작
+    while (!isInterruptionRequested()) {
+        int ret = daq->readDataRaw(1000, data, &size, &nevent_raw);
+
+        switch (ret) {
+            case CAEN_FELib_Success:
+                // emit dataAcquired(data, size);
+                if (fout) fout->write(reinterpret_cast<char *>(data), size);
+                if (shm) shm->writeData(data, size);
+                nbunch++;
+                break;
+            case CAEN_FELib_Timeout:
+                std::cout << "CAEN_FELib_Timeout" << std::endl;
+                break;
+            case CAEN_FELib_Stop:
+                std::cout << "CAEN_FELib_Stop" << std::endl;
+                break;
+            default:
+                std::cout << "CAEN_FELib_Error" << std::endl;
+                break;
+        }
+
+        totalBytes += size;  // 전송된 바이트 수 누적
+        // 초당 전송된 바이트 수 업데이트
+        if (timer.elapsed() >= 1000) {
+            totalTime += timer.elapsed();                                     // 1초마다
+            emit updateBytesPerSecond(totalBytes * 1000. / timer.elapsed());  // 시그널 전송
+            emit updateMeasurementTime(totalTime);                            // 측정 시간 업데이트
+            totalBytes = 0;   // 카운터 초기화                                  // 측정 시간 업데이트
+            timer.restart();  // 타이머 재시작
+        }
+    }
+    totalTime += timer.elapsed();
+    emit updateMeasurementTime(totalTime);
+    emit updateBytesPerSecond(0.0);
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// QCAENV2740
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 QCAENV2740::QCAENV2740(QWidget *parent) : verbose(false), currentStatus(-1), QMainWindow(parent) {
     setWindowTitle("V274X DAQ");
     setWindowIcon(QIcon("icons/dig_v2740.png"));
 
     timer = new QTimer(this);
     verbose = true;
-    // CAENV2740 초기화
+
+    // shm = nullptr;
+    shm = new SharedMemory("/v2740");
+    //  CAENV2740 초기화
     initDAQ();
     // GUI 초기화
     initUI();
@@ -47,6 +110,10 @@ QCAENV2740::~QCAENV2740() {
     if (timer) {
         delete timer;
         timer = nullptr;
+    }
+    if (shm) {
+        delete shm;
+        shm = nullptr;
     }
 }
 
@@ -157,6 +224,7 @@ void QCAENV2740::initUI() {
     connect(stopButton, &QPushButton::clicked, this, &QCAENV2740::stopDAQ);
     //////////////////////////////////////////////////////////////
 
+    ///////////////////////////////////////////////////////////
     // Digitizer Layout
     QFrame *digitizerFrame = new QFrame();
     digitizerFrame->setFrameShape(QFrame::Box);
@@ -239,12 +307,12 @@ void QCAENV2740::initUI() {
     elapsedTimeLabel = new QLabel("Elapsed Time: ");
     elapsedTimeLabel->setAlignment(Qt::AlignCenter);
     elapsedTimeLabel->setFixedWidth(200);
-    QLabel *bpsNameLabel = new QLabel("Bytes Per Second : ");
-    bytesPerSecondLabel = new QLabel("0 Bytes/s");
+    QLabel *bpsNameLabel = new QLabel("kB/s : ");
+    bytesPerSecondLabel = new QLabel("0 kB/s");
     // 게이지 추가
     bpsProgressBar = new QProgressBar(this);
-    bpsProgressBar->setRange(0, 1000000);  // 최대값 설정 (예: 1000000 Bytes/s)
-    bpsProgressBar->setValue(0);           // 초기값 설정
+    bpsProgressBar->setRange(0, 1000);  // 최대값 설정 (예: 1000 kB/s)
+    bpsProgressBar->setValue(0);        // 초기값 설정
 
     statusLayout->addWidget(statusLabel);
     // statusLayout->addWidget(statusIconLabel);
@@ -257,8 +325,8 @@ void QCAENV2740::initUI() {
         elapsedTimeLabel->setText(QString("Elapsed Time: %1 s").arg(time / 1000., 0, 'f', 1));
     });
     connect(thread, &DataAcquisitionThread::updateBytesPerSecond, this, [this](float bps) {
-        bytesPerSecondLabel->setText(QString("%1 Bytes/s").arg(bps, 0, 'f', 1));
-        bpsProgressBar->setValue(static_cast<int>(bps));  // 게이지 업데이트
+        bytesPerSecondLabel->setText(QString("%1 kB/s").arg(bps / 1024, 0, 'f', 1));
+        bpsProgressBar->setValue(static_cast<int>(bps / 1024));  // 게이지 업데이트
     });
 
     QHBoxLayout *statusLayout2 = new QHBoxLayout();
@@ -351,28 +419,24 @@ void QCAENV2740::loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWidget *
     for (const auto &node : rootNode) {
         QTreeWidgetItem *item = new QTreeWidgetItem(
             treeWidget,
-            QStringList() << QString::fromStdString(std::string(node.key().data(), node.key().size()))
-                          << (node.has_val() ? QString::fromStdString(std::string(node.val().data(), node.val().size()))
-                                             : ""));
+            QStringList() << QString::fromLocal8Bit(node.key().data(), node.key().size())
+                          << (node.has_val() ? QString::fromLocal8Bit(node.val().data(), node.val().size()) : ""));
         if (node.is_map()) {
             for (const auto &subNode : node) {
                 QString value;
                 if (subNode.has_val()) {
-                    value = QString::fromStdString(std::string(subNode.val().data(), subNode.val().size()));
+                    value = QString::fromLocal8Bit(subNode.val().data(), subNode.val().size());
                 } else if (subNode.is_seq()) {
                     value = "[";
                     for (const auto &subSubNode : subNode) {
-                        value +=
-                            QString::fromStdString(std::string(subSubNode.val().data(), subSubNode.val().size())) + ",";
+                        value += QString::fromLocal8Bit(subSubNode.val().data(), subSubNode.val().size()) + ",";
                     }
                     value = value.left(value.length() - 1) + "]";
                 } else {
                     value = "";
                 }
                 QTreeWidgetItem *subItem = new QTreeWidgetItem(
-                    item,
-                    QStringList() << QString::fromStdString(std::string(subNode.key().data(), subNode.key().size()))
-                                  << value);
+                    item, QStringList() << QString::fromLocal8Bit(subNode.key().data(), subNode.key().size()) << value);
             }
         }
         if (node.is_seq()) {
@@ -383,22 +447,20 @@ void QCAENV2740::loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWidget *
                 for (const auto &subSubNode : subNode) {
                     QString value;
                     if (subNode.has_val()) {
-                        value = QString::fromStdString(std::string(subNode.val().data(), subNode.val().size()));
+                        value = QString::fromLocal8Bit(subNode.val().data(), subNode.val().size());
                     } else if (subNode.is_seq()) {
                         value = "[";
                         for (const auto &subSubNode : subNode) {
-                            value +=
-                                QString::fromStdString(std::string(subSubNode.val().data(), subSubNode.val().size())) +
-                                ",";
+                            value += QString::fromLocal8Bit(subSubNode.val().data(), subSubNode.val().size()) + ",";
                         }
                         value = value.left(value.length() - 1) + "]";
                     } else {
                         value = "";
                     }
                     QTreeWidgetItem *subSubItem = new QTreeWidgetItem(
-                        subItem, QStringList() << QString::fromStdString(
-                                                      std::string(subSubNode.key().data(), subSubNode.key().size()))
-                                               << value);
+                        subItem, QStringList()
+                                     << QString::fromLocal8Bit(subSubNode.key().data(), subSubNode.key().size())
+                                     << value);
                 }
             }
         }
@@ -447,6 +509,7 @@ void QCAENV2740::runDAQ() {
         thread->setFout(nullptr);
     else
         thread->setFout(&fout);
+    if (shm) thread->setShm(shm);
 
     daq->clear();
     daq->armAcquisition();

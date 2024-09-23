@@ -8,7 +8,6 @@
 
 #include "CAENV2740Event.hxx"
 #include "CAENV2740Par.hxx"
-
 class CAENV2740 {
    private:
     uint64_t handle;  // int에서 uint64_t로 변경

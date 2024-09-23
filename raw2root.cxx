@@ -23,7 +23,7 @@ class CAENV2740Reader {
         }
     }
 
-    void InitOutput(std::string outputFilename = "output.root") {
+    void InitOutput(std::string outputFilename) {
         file = new TFile(outputFilename.c_str(), "RECREATE");   // ROOT 파일 생성
         tree = new TTree("EventTree", "CAENV2740 Event Tree");  // ROOT 트리 생성
 
@@ -194,14 +194,10 @@ class CAENV2740Reader {
 
             switch (eventType) {
                 case 1:
-                    if (flagVerbose) {
-                        std::cout << "Common Trigger" << std::endl;
-                    }
+                    if (flagVerbose) std::cout << "Common Trigger" << std::endl;
                     break;
                 case 2:
-                    if (flagVerbose) {
-                        std::cout << "Individual Trigger" << std::endl;
-                    }
+                    if (flagVerbose) std::cout << "Individual Trigger" << std::endl;
                     if (!board_good) break;
                     j = 0;
                     for (int i = 1; i < nWords; i++) {
@@ -218,9 +214,7 @@ class CAENV2740Reader {
                     }
                     break;
                 case 3:
-                    if (flagVerbose) {
-                        std::cout << "Special" << std::endl;
-                    }
+                    if (flagVerbose) std::cout << "Special" << std::endl;
                     runEvent = (data[0] >> 32) & 0xFF;  // 32 ~ 39 비트 추출
                     if (runEvent == 3) {
                         for (int i = 0; i < 3; i++) {
@@ -280,6 +274,15 @@ int main(int argc, char *argv[]) {
                 std::cerr << "출력 파일 이름이 지정되지 않았습니다." << std::endl;
                 return 1;
             }
+        }
+    }
+    if (outputFile.empty()) {
+        std::string inputFileName = argv[1];
+        size_t dotPos = inputFileName.find('.');
+        if (dotPos != std::string::npos) {
+            outputFile = inputFileName.substr(0, dotPos) + ".root";
+        } else {
+            outputFile = inputFileName + ".root";
         }
     }
 

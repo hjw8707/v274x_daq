@@ -17,12 +17,12 @@ option(BUNDLE_APP "Build as a macOS bundle app" OFF)
 # Qt6, yaml-cpp, ROOT 라이브러리 찾기
 find_package(ryml REQUIRED)
 find_package(c4core REQUIRED)
-find_package(ROOT REQUIRED)
-find_package(Qt6 COMPONENTS Core Gui Widgets REQUIRED)
+find_package(ROOT REQUIRED COMPONENTS Hist RIO RHttp)
+find_package(Qt6 COMPONENTS Core Gui Widgets Charts REQUIRED)
 
 # 라이브러리 디렉토리 추가
 # (라이브러리 디렉토리를 프로젝트의 라이브러리 경로로 수정)
-link_directories(/usr/local/lib /opt/homebrew/lib)
+link_directories(/usr/local/lib /opt/homebrew/lib ${CMAKE_SOURCE_DIR}/lib)
 
 # 외부 라이브러리 링크
 # (여기에 실제 라이브러리 이름을 추가)
@@ -34,6 +34,8 @@ set(V2740_SOURCES
     CAENV2740Par.cxx
     CAENV2740Event.cxx
     QCAENV2740.cxx
+    SharedMemory.cxx
+    OnlineMonitor.cxx
     # 필요한 다른 소스 파일들을 여기에 추가하세요
 )
 #########################################################################
@@ -46,10 +48,10 @@ set_target_properties(v2740 PROPERTIES
 )
 
 # v2740 라이브러리에 대한 include 디렉토리 설정
-target_include_directories(v2740 PUBLIC /usr/local/include /opt/homebrew/include)
+target_include_directories(v2740 PUBLIC ${ROOT_INCLUDE_DIRS} /usr/local/include /opt/homebrew/include)
 
 # v2740 라이브러리 링크
-target_link_libraries(v2740 PRIVATE ${CAEN_FELib_PATH} ryml c4core Qt6::Core Qt6::Gui Qt6::Widgets)
+target_link_libraries(v2740 PRIVATE ${ROOT_LIBRARIES} ${CAEN_FELib_PATH} ryml c4core Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Charts)
 
 # v2740 라이브러리 설치
 install(TARGETS v2740
@@ -102,7 +104,7 @@ if (BUNDLE_APP)
 endif()
 
 # 라이브러리 링크 시 @rpath 사용
-target_link_libraries(v274x_daq PRIVATE v2740 Qt6::Widgets)
+target_link_libraries(v274x_daq PRIVATE v2740 Qt6::Widgets ${ROOT_LIBRARIES})
 
 # v274x_daq 실행 파일 설치
 install(TARGETS v274x_daq
@@ -121,6 +123,34 @@ target_link_libraries(raw2root PRIVATE v2740 ${ROOT_LIBRARIES})
 
 # raw2root 실행 파일 설치
 install(TARGETS raw2root
+    RUNTIME DESTINATION bin
+)
+#########################################################################
+
+#########################################################################
+# sm_reader: console application for reading shared memory
+#########################################################################
+# sm_reader 컴파일 관련 내용 추가
+add_executable(sm_reader sm_reader.cxx)
+target_include_directories(sm_reader PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(sm_reader PRIVATE v2740 ${ROOT_LIBRARIES})
+
+# sm_reader 실행 파일 설치
+install(TARGETS sm_reader
+    RUNTIME DESTINATION bin
+)
+#########################################################################
+
+#########################################################################
+# v274x_mon: Qt application for online monitoring
+#########################################################################
+# v274x_mon 컴파일 관련 내용 추가
+add_executable(v274x_mon v274x_mon.cxx)
+target_include_directories(v274x_mon PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(v274x_mon PRIVATE v2740 ${ROOT_LIBRARIES})
+
+# v274x_mon 실행 파일 설치
+install(TARGETS v274x_mon
     RUNTIME DESTINATION bin
 )
 #########################################################################

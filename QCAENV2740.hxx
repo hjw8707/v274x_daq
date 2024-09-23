@@ -23,54 +23,27 @@
 #include "QtWidgets/QTreeWidget"
 #include "QtWidgets/QVBoxLayout"
 #include "QtWidgets/QWidget"
+#include "SharedMemory.hxx"  // SharedMemory 클래스 포함
+
+/**
+ * @brief This class is the DataAcquisitionThread class.
+ * @details It is responsible for acquiring and processing data in a separate thread.
+ */
 class DataAcquisitionThread : public QThread {
     Q_OBJECT
    public:
-    DataAcquisitionThread(CAENV2740 *daq) : daq(daq), fout(nullptr) {}
+    /**
+     * @brief This is the constructor of the DataAcquisitionThread class.
+     * @param daq The CAENV2740 object.
+     */
+    DataAcquisitionThread(CAENV2740 *daq) : daq(daq), fout(nullptr), shm(nullptr) {}
+    /**
+     * @brief This function sets the output file stream.
+     * @param fout The output file stream.
+     */
     void setFout(std::ofstream *fout) { this->fout = fout; }
-
-    void run() override {
-        size_t size = 0;
-        uint8_t *data = new uint8_t[2621440];
-        uint32_t nevent_raw = 0;
-        uint64_t nbunch = 0;
-        uint32_t prev_aggregate_counter = 0;
-        size_t totalBytes = 0;  // 총 전송된 바이트 수
-        qint64 totalTime = 0;   // 총 측정 시간
-        QElapsedTimer timer;    // 타이머 추가
-        timer.start();          // 타이머 시작
-        while (!isInterruptionRequested()) {
-            int ret = daq->readDataRaw(1000, data, &size, &nevent_raw);
-
-            switch (ret) {
-                case CAEN_FELib_Success:
-                    // emit dataAcquired(data, size);
-                    if (fout) fout->write(reinterpret_cast<char *>(data), size);
-                    nbunch++;
-                    break;
-                case CAEN_FELib_Timeout:
-                    return;  // break;
-                case CAEN_FELib_Stop:
-                    return;
-                default:
-                    // 데이터 읽기 실패
-                    break;
-            }
-
-            totalBytes += size;  // 전송된 바이트 수 누적
-            // 초당 전송된 바이트 수 업데이트
-            if (timer.elapsed() >= 1000) {
-                totalTime += timer.elapsed();                                     // 1초마다
-                emit updateBytesPerSecond(totalBytes * 1000. / timer.elapsed());  // 시그널 전송
-                emit updateMeasurementTime(totalTime);                            // 측정 시간 업데이트
-                totalBytes = 0;   // 카운터 초기화                                  // 측정 시간 업데이트
-                timer.restart();  // 타이머 재시작
-            }
-        }
-        totalTime += timer.elapsed();
-        emit updateMeasurementTime(totalTime);
-        emit updateBytesPerSecond(0.0);
-    }
+    void setShm(SharedMemory *shm) { this->shm = shm; }
+    void run() override;
 
    signals:
     void dataAcquired(uint8_t *data, size_t size);
@@ -80,12 +53,18 @@ class DataAcquisitionThread : public QThread {
    private:
     CAENV2740 *daq;
     std::ofstream *fout;
+    SharedMemory *shm;
 };
+
+/**
+ * @brief This class is the QCAENV2740 class.
+ * @details It is responsible for the main window of the application.
+ */
 class QCAENV2740 : public QMainWindow {
     Q_OBJECT
 
    signals:
-    void statusUpdated(const QString &status);
+    void statusUpdated(const QString &status);  // 상태 업데이트 시그널
 
    public:
     QCAENV2740(QWidget *parent = nullptr);
@@ -108,6 +87,7 @@ class QCAENV2740 : public QMainWindow {
 
     DataAcquisitionThread *thread;
 
+    SharedMemory *shm;
     std::ofstream fout;
 
     void initUI();
@@ -136,6 +116,8 @@ class QCAENV2740 : public QMainWindow {
     void setStatus(int status);
 
     void applySettings();
+
+    void startMonitoring();
 
     // 위젯
     QLineEdit *ipLineEdit;
@@ -172,6 +154,7 @@ class QCAENV2740 : public QMainWindow {
     QPushButton *runButton;
     QPushButton *runNSButton;
     QPushButton *stopButton;
+    QPushButton *monitoringButton;
 };
 
 #endif  // MAINWINDOW_H
