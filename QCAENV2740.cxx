@@ -78,18 +78,20 @@ void DataAcquisitionThreadSingle::run() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // QCAENV2740
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-QCAENV2740::QCAENV2740(const char *ipAddress, int _boardNumber, QWidget *parent)
-    : verbose(false), currentStatus(-1), boardNumber(_boardNumber), QWidget(parent) {
+QCAENV2740::QCAENV2740(const char *ipAddress, int _boardNumber, QString _boardName, QWidget *parent)
+    : verbose(false), currentStatus(-1), boardNumber(_boardNumber), boardName(_boardName), QWidget(parent) {
     this->ipAddress = QString(ipAddress);
 
     verbose = true;
 
-    // shm = nullptr;
-    // shm = new SharedMemory("/v2740");
+    if (boardName.isEmpty()) boardName = QString("%1").arg(boardNumber, 2, 10, QChar('0'));
+
     //  CAENV2740 초기화
     initDAQ();
     // GUI 초기화
     initUI();
+
+    // shm = new SharedMemory("/" + model.toStdString() + "_" + QString::number(boardNumber).toStdString());
 }
 
 QCAENV2740::~QCAENV2740() {
@@ -237,6 +239,7 @@ void QCAENV2740::initUI() {
 
     // 초기 상태 설정
     // setStatus(0);
+    setStatus(1);
     //////////////////////////////////////////////////////////////
 }
 
@@ -245,9 +248,7 @@ void QCAENV2740::initDAQ() {
     daq->setVerbose(verbose);
 
     connectDAQ();
-
-    // model = QString::fromStdString(daq->readModelName());
-    model = "V2740";
+    model = QString::fromStdString(daq->readModelName());
 
     par = new CAENV2740Par();
 
@@ -257,15 +258,15 @@ void QCAENV2740::initDAQ() {
 void QCAENV2740::connectDAQ() {
     if (verbose) std::cout << "connectDAQ" << std::endl;
     if (verbose) std::cout << "currentStatus: " << currentStatus << std::endl;
-    if (currentStatus != 0) return;  // 현재 상태가 0(Disconnected)이 아니면 실행하지 않음
-    // try {
-    //     QString connectStr = "dig2://" + ipAddress;
-    //     daq->connect(connectStr.toStdString());
-    // } catch (const std::exception &e) {
-    //     QMessageBox::critical(this, "Error", "연결 실패");
-    //     return;
-    // }
-    setStatus(1);
+
+    try {
+        QString connectStr = "dig2://" + ipAddress;
+        daq->connect(connectStr.toStdString());
+        if (verbose) std::cout << "연결 성공" << std::endl;
+    } catch (const std::exception &e) {
+        QMessageBox::critical(this, "Error", "연결 실패");
+        return;
+    }
 }
 
 void QCAENV2740::clearDAQ() { daq->clear(); }
@@ -277,7 +278,7 @@ void QCAENV2740::rebootDAQ() { daq->reboot(); }
 void QCAENV2740::disconnectDAQ() {
     if (verbose) std::cout << "disconnectDAQ" << std::endl;
     if (verbose) std::cout << "currentStatus: " << currentStatus << std::endl;
-    // daq->close();
+    daq->close();
     setStatus(0);
 
     emit removeDigitizer(this);
@@ -377,7 +378,7 @@ void QCAENV2740::applyParameter() { daq->loadParameter(*par); }
 
 void QCAENV2740::readyDAQ(QString fileName, bool nosave) {
     applySettings();
-    fileName += QString("%02d").arg(boardNumber);
+    fileName += QString("_%1").arg(boardName);
 
     if (nosave)
         thread->setFout(nullptr);
@@ -405,9 +406,12 @@ void QCAENV2740::stopDAQ() {
     if (verbose) std::cout << "stopDAQ" << std::endl;
     thread->requestInterruption();  // 종료 신호 전송
     thread->quit();
+    //////////////////////////////////////////////////////////////
+    // 파일 크기 업데이트 (thread가 종료되기 전에 파일 크기를 업데이트하여 QCAENV274XMulti에서의 동기화 문제를 해결)
+    emit updateBoardTotalBytes(boardNumber, fout.tellp());
+    //////////////////////////////////////////////////////////////
     thread->wait();
 
-    emit updateBoardTotalBytes(boardNumber, fout.tellp());
     fout.close();
 
     setStatus(1);
@@ -454,7 +458,7 @@ void QCAENV2740::setStatus(int status) {
             break;
     }
     if (verbose) std::cout << "statusText: " << statusText.toStdString() << std::endl;
-    emit statusUpdated(statusText);  // 상태가 변경될 때 시그널 발송
+    // emit statusUpdated(statusText);  // 상태가 변경될 때 시그널 발송
 }
 
 void QCAENV2740::applySettings() {

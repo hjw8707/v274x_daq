@@ -67,12 +67,17 @@ void QCAENV274XMulti::initUI() {
     QHBoxLayout *connectLayout = new QHBoxLayout();
     layout->addLayout(connectLayout);
 
+    QLabel *boardLabel = new QLabel("Board Name:");
+    boardLineEdit = new QLineEdit();
+    boardLineEdit->setPlaceholderText("Enter Board Name");
     QLabel *ipLabel = new QLabel("IP Address:");
     ipLineEdit = new QLineEdit();
     ipLineEdit->setPlaceholderText("Enter IP Address");
     connectButton = new QPushButton("&Connect");
     exitButton = new QPushButton("\u23fb E&xit");
 
+    connectLayout->addWidget(boardLabel);
+    connectLayout->addWidget(boardLineEdit);
     connectLayout->addWidget(ipLabel);
     connectLayout->addWidget(ipLineEdit);
     connectLayout->addWidget(connectButton);
@@ -198,35 +203,38 @@ void QCAENV274XMulti::runNS() {
 }
 
 void QCAENV274XMulti::run() {
+    if (numOfDigitizers == 0) {
+        QMessageBox::warning(this, "No Digitizer", "No digitizer connected.");
+        nosave = false;
+        return;
+    }
     // board bps 초기화
     for (int i = 0; i < numOfDigitizers; i++) boardBps[i] = 0;
 
-    std::string runName = runNameLineEdit->text().isEmpty() ? "run" : runNameLineEdit->text().toStdString();
+    QString runName = runNameLineEdit->text().isEmpty() ? "run" : runNameLineEdit->text();
     int runNumber = runNumberSpinBox->value();
-    std::string fileName = runName + QString("%1").arg(runNumber, 4, 10, QChar('0')).toStdString() + ".dat";
-    std::ifstream fileCheck(fileName);
+    QString fileName = runName + QString("%1").arg(runNumber, 4, 10, QChar('0')) + ".dat";
+    std::ifstream fileCheck(fileName.toStdString());
     if (!nosave && fileCheck.is_open()) {
         QMessageBox::StandardButton reply;
-        reply = QMessageBox::question(
-            this, "파일 존재 확인",
-            QString("파일 %1이 이미 존재합니다. 덮어씌우시겠습니까?").arg(QString::fromStdString(fileName)),
-            QMessageBox::Yes | QMessageBox::No);
+        reply = QMessageBox::question(this, "파일 존재 확인",
+                                      QString("파일 %1이 이미 존재합니다. 덮어씌우시겠습니까?").arg(fileName),
+                                      QMessageBox::Yes | QMessageBox::No);
         if (reply == QMessageBox::No) {
             return;
         }
     }
-    // applySettings();
 
     if (nosave) {
         filenameLabel->setText("Not saving to file");
     } else {
-        filenameLabel->setText("Saving to file: " + QFileInfo(QString::fromStdString(fileName)).absoluteFilePath());
+        filenameLabel->setText("Saving to file: " + QFileInfo(fileName).absoluteFilePath());
     }
     fileSizeLabel->setText("File Size: - kBytes");
 
-    for (QCAENV2740 *digitizer : digitizers) {
-        // digitizer->run();
-    }
+    for (QCAENV2740 *digitizer : digitizers) digitizer->readyDAQ(fileName, nosave);
+    for (QCAENV2740 *digitizer : digitizers) digitizer->runDAQ();
+
     // 측정 시간이 0보다 크면 측정 시간 타이머 시작
     if (measurementTimeSpinBox->value() > 0)
         QTimer::singleShot(measurementTimeSpinBox->value() * 1000, this, &QCAENV274XMulti::stop);
@@ -237,9 +245,8 @@ void QCAENV274XMulti::run() {
 }
 
 void QCAENV274XMulti::stop() {
-    for (QCAENV2740 *digitizer : digitizers) {
-        // digitizer->stop();
-    }
+    for (QCAENV2740 *digitizer : digitizers) digitizer->stopDAQ();
+
     updateTimer->stop();
     elapsedTimeLabel->setText(QString("Elapsed Time: %1 s").arg(elapsedTimer->elapsed() / 1000., 0, 'f', 1));
     elapsedTimer->invalidate();
@@ -254,6 +261,8 @@ void QCAENV274XMulti::stop() {
 }
 
 void QCAENV274XMulti::addDigitizer() {
+    QString newBoardName = boardLineEdit->text();
+
     QString newIp = ipLineEdit->text();
     for (QCAENV2740 *digitizer : digitizers) {
         if (digitizer->getIPAddress() == newIp.toStdString()) {
@@ -266,9 +275,10 @@ void QCAENV274XMulti::addDigitizer() {
 
     QString connectStr = "dig2://" + newIp;
     if (CAENV2740::available(connectStr.toStdString())) {
-        digitizers.append(new QCAENV2740(ipLineEdit->text().toStdString().c_str(), numOfDigitizers, this));
-        numOfDigitizers++;
+        digitizers.append(
+            new QCAENV2740(ipLineEdit->text().toStdString().c_str(), numOfDigitizers, newBoardName, this));
         digitizerTabWidget->addTab(digitizers.last(), QString("Digitizer %1").arg(numOfDigitizers));
+        numOfDigitizers++;
         connect(digitizers.last(), &QCAENV2740::removeDigitizer, this, &QCAENV274XMulti::removeDigitizer);
         connect(digitizers.last()->getThread(), &DataAcquisitionThreadSingle::updateBoardBps, this,
                 &QCAENV274XMulti::updateBoardBps);

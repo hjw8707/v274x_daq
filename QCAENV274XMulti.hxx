@@ -71,6 +71,7 @@ class QCAENV274XMulti : public QMainWindow {
     QTabWidget *digitizerTabWidget;
     QLabel *digitizerLabel;
 
+    QLineEdit *boardLineEdit;
     QLineEdit *ipLineEdit;
     QLineEdit *runNameLineEdit;
     QSpinBox *runNumberSpinBox;
