@@ -33,6 +33,7 @@ set(V2740_SOURCES
     CAENV2740.cxx
     CAENV2740Par.cxx
     CAENV2740Event.cxx
+    QCAENV2740.cxx
     QCAENV2740Single.cxx
     SharedMemory.cxx
     OnlineMonitor.cxx

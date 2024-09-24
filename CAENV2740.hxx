@@ -20,6 +20,8 @@ class CAENV2740 {
     CAENV2740();
     ~CAENV2740();
 
+    static bool available(const std::string& str);
+
     inline void setVerbose(bool verbose) { this->verbose = verbose; }
     inline bool getVerbose() { return verbose; }
 

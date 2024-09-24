@@ -16,6 +16,19 @@ CAENV2740::~CAENV2740() {
     }
 }
 
+bool CAENV2740::available(const std::string& str) {
+    uint64_t handle = 0;
+    std::cout << "V2740 연결 확인: " << str << std::endl;
+    int ret = CAEN_FELib_Open(str.c_str(), &handle);
+    if (ret != CAEN_FELib_Success) {
+        std::cout << "V2740 연결 실패" << std::endl;
+        return false;
+    }
+    std::cout << "V2740 연결 성공" << std::endl;
+    CAEN_FELib_Close(handle);
+    return true;
+}
+
 void CAENV2740::connect(const std::string& str) {
     connectionString = str;
     int ret = CAEN_FELib_Open(connectionString.c_str(), &handle);

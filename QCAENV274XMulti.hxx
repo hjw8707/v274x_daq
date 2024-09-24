@@ -5,6 +5,7 @@
 
 #include "CAENV2740.hxx"  // CAENV2740 클래스 포함
 #include "CAENV2740Par.hxx"
+#include "QCAENV2740.hxx"
 #include "QtCore/QElapsedTimer"
 #include "QtCore/QThread"
 #include "QtCore/QTimer"
@@ -32,27 +33,45 @@
 class QCAENV274XMulti : public QMainWindow {
     Q_OBJECT
 
-    // signals:
-    //  void statusUpdated(const QString &status);  // 상태 업데이트 시그널
-
    public:
     QCAENV274XMulti(QWidget *parent = nullptr);
     virtual ~QCAENV274XMulti();  // 가상 소멸자 추가
 
+    void addDigitizer();
+
+   public slots:
+    void removeDigitizer(QCAENV2740 *digitizer);
+    void updateDigitizerLabel();
+    void updateBoardBps(int board, float bps);
+    void updateBoardTotalBytes(int board, uint64_t bytes);
+
+   protected:
+    void closeEvent(QCloseEvent *event) override;
+
    private:
+    void updateStatus(bool running);
+
     bool verbose;
-    int currentStatus;
     int numOfDigitizers;
+    bool isRunning;
 
     bool nosave;
 
-    std::ofstream fout;
+    float boardBps[100];
+    uint64_t boardTotalBytes[100];
 
     void initUI();
 
+    void runNS();
+    void run();
+    void stop();
+
     // 위젯
+    QList<QCAENV2740 *> digitizers;
+    QTabWidget *digitizerTabWidget;
+    QLabel *digitizerLabel;
+
     QLineEdit *ipLineEdit;
-    QLineEdit *parameterLineEdit;
     QLineEdit *runNameLineEdit;
     QSpinBox *runNumberSpinBox;
     QCheckBox *autoIncCheckBox;
@@ -65,27 +84,15 @@ class QCAENV274XMulti : public QMainWindow {
     QLabel *filenameLabel;
     QLabel *fileSizeLabel;
 
-    QTimer *timer;
-
-    QCheckBox *applySettingsCheckBox;
-    QGroupBox *digitizerCHEnableGroupBox;
-    QGroupBox *triggerSettingsGroupBox;
-    // QCheckBox를 QList로 관리하여 동적으로 생성
-    QList<QCheckBox *> checkBoxes;
+    QTimer *updateTimer;
+    QElapsedTimer *elapsedTimer;
 
     QPushButton *connectButton;
-    QPushButton *clearButton;
-    QPushButton *resetButton;
-    QPushButton *rebootButton;
-    QPushButton *disconnectButton;
     QPushButton *exitButton;
-    QPushButton *loadButton;
-    QPushButton *viewButton;
-    QPushButton *applyButton;
+
     QPushButton *runButton;
     QPushButton *runNSButton;
     QPushButton *stopButton;
-    QPushButton *monitoringButton;
 };
 
 #endif  // MAINWINDOW_H

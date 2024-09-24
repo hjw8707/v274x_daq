@@ -29,14 +29,15 @@
  * @brief This class is the DataAcquisitionThread class.
  * @details It is responsible for acquiring and processing data in a separate thread.
  */
-class DataAcquisitionThread : public QThread {
+class DataAcquisitionThreadSingle : public QThread {
     Q_OBJECT
    public:
     /**
      * @brief This is the constructor of the DataAcquisitionThread class.
      * @param daq The CAENV2740 object.
      */
-    DataAcquisitionThread(CAENV2740 *daq) : daq(daq), fout(nullptr), shm(nullptr) {}
+    DataAcquisitionThreadSingle(CAENV2740 *daq, int _boardNumber)
+        : daq(daq), boardNumber(_boardNumber), fout(nullptr), shm(nullptr) {}
     /**
      * @brief This function sets the output file stream.
      * @param fout The output file stream.
@@ -47,11 +48,12 @@ class DataAcquisitionThread : public QThread {
 
    signals:
     void dataAcquired(uint8_t *data, size_t size);
-    void updateBytesPerSecond(float bps);     // 바이트 수 업데이트 시그널
-    void updateMeasurementTime(qint64 time);  // 측정 시간 업데이트 시그널
+    void updateBoardBps(int board, float bps);  // 바이트 수 업데이트 시그널
+    void updateMeasurementTime(qint64 time);    // 측정 시간 업데이트 시그널
 
    private:
     CAENV2740 *daq;
+    int boardNumber;
     std::ofstream *fout;
     SharedMemory *shm;
 };
@@ -60,32 +62,39 @@ class DataAcquisitionThread : public QThread {
  * @brief This class is the QCAENV2740 class.
  * @details It is responsible for the main window of the application.
  */
-class QCAENV2740 : public QMainWindow {
+class QCAENV2740 : public QWidget {
     Q_OBJECT
 
    signals:
     void statusUpdated(const QString &status);  // 상태 업데이트 시그널
+    void removeDigitizer(QCAENV2740 *digitizer);
+    void updateBoardTotalBytes(int board, uint64_t bytes);
 
    public:
-    QCAENV2740(QWidget *parent = nullptr);
+    QCAENV2740(const char *ip, int _boardNumber = 0, QWidget *parent = nullptr);
     virtual ~QCAENV2740();  // 가상 소멸자 추가
 
-    void setIPAddress(const QString &ipAddress) { ipLineEdit->setText(ipAddress); }
-    QString getIPAddress() const { return ipLineEdit->text(); }
+    const std::string getIPAddress() const { return ipAddress.toStdString(); }
 
-    void connectDAQ();
+    DataAcquisitionThreadSingle *getThread() const { return thread; }
+
+   protected:
+    void closeEvent(QCloseEvent *event) override;
 
    private:
     bool verbose;
-    bool nosave;
-    // QString ipAddress;
+    int boardNumber;
+
+    QString ipAddress;
+    QString model;
+
     int currentStatus;
     uint32_t prev_aggregate_counter;
 
     CAENV2740 *daq;     // CAENV2740 객체
     CAENV2740Par *par;  // CAENV2740 Parameter 객체
 
-    DataAcquisitionThread *thread;
+    DataAcquisitionThreadSingle *thread;
 
     SharedMemory *shm;
     std::ofstream fout;
@@ -93,14 +102,14 @@ class QCAENV2740 : public QMainWindow {
     void initUI();
     void initDAQ();
 
+    void connectDAQ();
     void clearDAQ();
     void resetDAQ();
     void rebootDAQ();
     void disconnectDAQ();
-    void exitDAQ();
 
+    void readyDAQ(QString fileName, bool nosave = false);
     void runDAQ();
-    void runNSDAQ();
     void stopDAQ();
 
     // void rawDataAcquisition();
@@ -117,24 +126,8 @@ class QCAENV2740 : public QMainWindow {
 
     void applySettings();
 
-    void startMonitoring();
-
     // 위젯
-    QLineEdit *ipLineEdit;
     QLineEdit *parameterLineEdit;
-    QLineEdit *runNameLineEdit;
-    QSpinBox *runNumberSpinBox;
-    QCheckBox *autoIncCheckBox;
-    QSpinBox *measurementTimeSpinBox;
-    QLabel *bytesPerSecondLabel;
-    QProgressBar *bpsProgressBar;
-    QLabel *statusLabel;
-    QLabel *elapsedTimeLabel;
-    QLabel *statusIconLabel;
-    QLabel *filenameLabel;
-    QLabel *fileSizeLabel;
-
-    QTimer *timer;
 
     QCheckBox *applySettingsCheckBox;
     QGroupBox *digitizerCHEnableGroupBox;
@@ -142,19 +135,13 @@ class QCAENV2740 : public QMainWindow {
     // QCheckBox를 QList로 관리하여 동적으로 생성
     QList<QCheckBox *> checkBoxes;
 
-    QPushButton *connectButton;
     QPushButton *clearButton;
     QPushButton *resetButton;
     QPushButton *rebootButton;
     QPushButton *disconnectButton;
-    QPushButton *exitButton;
     QPushButton *loadButton;
     QPushButton *viewButton;
     QPushButton *applyButton;
-    QPushButton *runButton;
-    QPushButton *runNSButton;
-    QPushButton *stopButton;
-    QPushButton *monitoringButton;
 };
 
 #endif  // MAINWINDOW_H
