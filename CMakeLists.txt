@@ -35,9 +35,10 @@ set(V2740_SOURCES
     CAENV2740Event.cxx
     QCAENV2740.cxx
     QCAENV2740Single.cxx
+    QCAENV274XMulti.cxx
     SharedMemory.cxx
     OnlineMonitor.cxx
-    QCAENV274XMulti.cxx
+    QBufferedFileWriter.cxx
     # 필요한 다른 소스 파일들을 여기에 추가하세요
 )
 #########################################################################
@@ -169,6 +170,15 @@ install(TARGETS v274x_mon
     RUNTIME DESTINATION bin
 )
 #########################################################################
+
+#########################################################################
+# test: console application for testing
+#########################################################################
+# test 컴파일 관련 내용 추가
+add_executable(test test.cxx)
+target_include_directories(test PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(test PRIVATE v2740 ${ROOT_LIBRARIES} Qt6::Core Qt6::Widgets)
+
 
 # 옵션으로 디버깅 정보 생성
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
