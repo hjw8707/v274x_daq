@@ -34,6 +34,8 @@ QCAENV274XMulti::QCAENV274XMulti(QWidget *parent)
     updateTimer = new QTimer(this);
     elapsedTimer = new QElapsedTimer();
 
+    writer = QBufferedFileWriter::getInstance();
+
     verbose = true;
     nosave = false;
 
@@ -52,6 +54,10 @@ QCAENV274XMulti::~QCAENV274XMulti() {
         delete elapsedTimer;
         elapsedTimer = nullptr;
     }
+    // if (writer) {
+    //     delete writer;
+    //     writer = nullptr;
+    // }
 }
 
 void QCAENV274XMulti::initUI() {
@@ -232,7 +238,11 @@ void QCAENV274XMulti::run() {
     }
     fileSizeLabel->setText("File Size: - kBytes");
 
-    for (QCAENV2740 *digitizer : digitizers) digitizer->readyDAQ(fileName, nosave);
+    for (QCAENV2740 *digitizer : digitizers) {
+        writer->setFileName(digitizer->getBoardName(), fileName + QString("_%1").arg(digitizer->getBoardName()));
+        digitizer->readyDAQ(fileName, nosave);
+    }
+    writer->start();
     for (QCAENV2740 *digitizer : digitizers) digitizer->runDAQ();
 
     // 측정 시간이 0보다 크면 측정 시간 타이머 시작
@@ -258,6 +268,7 @@ void QCAENV274XMulti::stop() {
 
     if (!nosave && autoIncCheckBox->isChecked()) runNumberSpinBox->setValue(runNumberSpinBox->value() + 1);
     nosave = false;
+    writer->stop();
 }
 
 void QCAENV274XMulti::addDigitizer() {
@@ -283,6 +294,7 @@ void QCAENV274XMulti::addDigitizer() {
         connect(digitizers.last()->getThread(), &DataAcquisitionThreadSingle::updateBoardBps, this,
                 &QCAENV274XMulti::updateBoardBps);
         connect(digitizers.last(), &QCAENV2740::updateBoardTotalBytes, this, &QCAENV274XMulti::updateBoardTotalBytes);
+        writer->addBuffer(newBoardName);
         if (verbose) std::cout << "Digitizer Added" << std::endl;
     } else {
         if (verbose) std::cout << "Digitizer Not Added" << std::endl;
@@ -293,6 +305,7 @@ void QCAENV274XMulti::addDigitizer() {
 void QCAENV274XMulti::removeDigitizer(QCAENV2740 *digitizer) {
     digitizerTabWidget->removeTab(digitizerTabWidget->indexOf(digitizer));
     digitizers.removeOne(digitizer);
+    writer->removeBuffer(digitizer->getBoardName());
     delete digitizer;
     numOfDigitizers--;
     updateDigitizerLabel();

@@ -5,6 +5,7 @@
 
 #include "CAENV2740.hxx"  // CAENV2740 클래스 포함
 #include "CAENV2740Par.hxx"
+#include "QBufferedFileWriter.hxx"
 #include "QCAENV2740.hxx"
 #include "QtCore/QElapsedTimer"
 #include "QtCore/QThread"
@@ -24,7 +25,6 @@
 #include "QtWidgets/QTreeWidget"
 #include "QtWidgets/QVBoxLayout"
 #include "QtWidgets/QWidget"
-#include "SharedMemory.hxx"  // SharedMemory 클래스 포함
 
 /**
  * @brief This class is the QCAENV274XMulti class.
@@ -67,6 +67,7 @@ class QCAENV274XMulti : public QMainWindow {
     void stop();
 
     // 위젯
+    QBufferedFileWriter *writer;
     QList<QCAENV2740 *> digitizers;
     QTabWidget *digitizerTabWidget;
     QLabel *digitizerLabel;

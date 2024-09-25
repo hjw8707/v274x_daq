@@ -5,6 +5,7 @@
 
 #include "CAENV2740.hxx"  // CAENV2740 클래스 포함
 #include "CAENV2740Par.hxx"
+#include "QBufferedFileWriter.hxx"
 #include "QtCore/QElapsedTimer"
 #include "QtCore/QThread"
 #include "QtCore/QTimer"
@@ -36,14 +37,17 @@ class DataAcquisitionThreadSingle : public QThread {
      * @brief This is the constructor of the DataAcquisitionThread class.
      * @param daq The CAENV2740 object.
      */
-    DataAcquisitionThreadSingle(CAENV2740 *daq, int _boardNumber)
-        : daq(daq), boardNumber(_boardNumber), fout(nullptr), shm(nullptr) {}
+    DataAcquisitionThreadSingle(CAENV2740 *daq, int _boardNumber, QString _boardName)
+        : daq(daq), boardNumber(_boardNumber), boardName(_boardName), fout(nullptr), shm(nullptr) {
+        writer = QBufferedFileWriter::getInstance();
+    }
     /**
      * @brief This function sets the output file stream.
      * @param fout The output file stream.
      */
     void setFout(std::ofstream *fout) { this->fout = fout; }
     void setShm(SharedMemory *shm) { this->shm = shm; }
+    void setBoardName(const QString &boardName) { this->boardName = boardName; }
     void run() override;
 
    signals:
@@ -54,9 +58,11 @@ class DataAcquisitionThreadSingle : public QThread {
    private:
     CAENV2740 *daq;
     int boardNumber;
+    QString boardName;
 
     std::ofstream *fout;
     SharedMemory *shm;
+    QBufferedFileWriter *writer;
 };
 
 /**
@@ -76,6 +82,7 @@ class QCAENV2740 : public QWidget {
     virtual ~QCAENV2740();  // 가상 소멸자 추가
 
     const std::string getIPAddress() const { return ipAddress.toStdString(); }
+    const QString getBoardName() const { return boardName; }
 
     DataAcquisitionThreadSingle *getThread() const { return thread; }
 

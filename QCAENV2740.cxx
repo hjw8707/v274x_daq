@@ -48,8 +48,9 @@ void DataAcquisitionThreadSingle::run() {
         switch (ret) {
             case CAEN_FELib_Success:
                 // emit dataAcquired(data, size);
-                if (fout) fout->write(reinterpret_cast<char *>(data), size);
-                if (shm) shm->writeData(data, size);
+                // if (fout) fout->write(reinterpret_cast<char *>(data), size);
+                // if (shm) shm->writeData(data, size);
+                writer->write(boardName, reinterpret_cast<char *>(data), size);
                 nbunch++;
                 break;
             case CAEN_FELib_Timeout:
@@ -252,7 +253,7 @@ void QCAENV2740::initDAQ() {
 
     par = new CAENV2740Par();
 
-    thread = new DataAcquisitionThreadSingle(daq, boardNumber);
+    thread = new DataAcquisitionThreadSingle(daq, boardNumber, boardName);
 }
 
 void QCAENV2740::connectDAQ() {

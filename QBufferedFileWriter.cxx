@@ -35,7 +35,7 @@ QBufferedFileWriter::~QBufferedFileWriter() {
         delete stream;
     }
 }
-
+void QBufferedFileWriter::addBuffer(const QString &bufferName) { addBuffer(bufferName, bufferName + ".dat"); }
 void QBufferedFileWriter::addBuffer(const QString &bufferName, const QString &fileName) {
     if (bufferNames.contains(bufferName)) return;
     if (writeThread->isRunning()) return;
@@ -62,6 +62,17 @@ void QBufferedFileWriter::removeBuffer(const QString &bufferName) {
     streams.remove(bufferName);
     locks.remove(bufferName);
     bufferNames.removeAll(bufferName);
+}
+
+void QBufferedFileWriter::setFileName(const QString &bufferName, const QString &fileName) {
+    if (!bufferNames.contains(bufferName)) return;
+    if (writeThread->isRunning()) return;
+
+    if (files[bufferName]->isOpen()) files[bufferName]->close();
+    if (files[bufferName]->size() == 0) files[bufferName]->remove();  // 파일 크기가 0이면 파일 삭제
+    files[bufferName]->setFileName(fileName);
+    files[bufferName]->open(QIODevice::WriteOnly);
+    clear(bufferName);
 }
 
 QDataStream &QBufferedFileWriter::stream(size_t index) { return *streams[bufferNames[index]]; }

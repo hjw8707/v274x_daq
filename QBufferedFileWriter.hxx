@@ -31,11 +31,18 @@ class QBufferedFileWriter : public QObject {
     Q_OBJECT
 
    public:
-    QBufferedFileWriter(QObject *parent = nullptr);
-    ~QBufferedFileWriter();
+    static QBufferedFileWriter *getInstance() {
+        static QBufferedFileWriter instance;
+        return &instance;
+    }
 
+    QBufferedFileWriter(QBufferedFileWriter const &) = delete;
+    void operator=(QBufferedFileWriter const &) = delete;
+
+    void addBuffer(const QString &bufferName);
     void addBuffer(const QString &bufferName, const QString &fileName);
     void removeBuffer(const QString &bufferName);
+    void setFileName(const QString &bufferName, const QString &fileName);
 
     //////////////////////////////////////////////////////////
     // ! The functions below do not lock the buffer.
@@ -63,11 +70,14 @@ class QBufferedFileWriter : public QObject {
     void stop();
 
    private:
+    QBufferedFileWriter(QObject *parent = nullptr);
+    ~QBufferedFileWriter();
+
     QList<QString> bufferNames;
-    QMap<QString, QBuffer *> buffers;
-    QMap<QString, QDataStream *> streams;
-    QMap<QString, QFile *> files;
-    QMap<QString, QReadWriteLock *> locks;
+    QHash<QString, QBuffer *> buffers;
+    QHash<QString, QDataStream *> streams;
+    QHash<QString, QFile *> files;
+    QHash<QString, QReadWriteLock *> locks;
     WriteThread *writeThread;
 };
 
