@@ -17,7 +17,10 @@ void WriteThread::stop() { running = false; }
 ////////////////////////////////////////////////////////////
 // QBufferedFileWriter
 ////////////////////////////////////////////////////////////
-QBufferedFileWriter::QBufferedFileWriter(QObject *parent) : QObject(parent) { writeThread = new WriteThread(this); }
+QBufferedFileWriter::QBufferedFileWriter(QObject *parent)
+    : QObject(parent), singleFileMode(false), singleFile(nullptr) {
+    writeThread = new WriteThread(this);
+}
 
 QBufferedFileWriter::~QBufferedFileWriter() {
     for (const auto &buffer : buffers) {
@@ -34,6 +37,8 @@ QBufferedFileWriter::~QBufferedFileWriter() {
     for (const auto &stream : streams) {
         delete stream;
     }
+    if (singleFile && singleFile->isOpen()) singleFile->close();
+    delete singleFile;
 }
 void QBufferedFileWriter::addBuffer(const QString &bufferName) { addBuffer(bufferName, bufferName + ".dat"); }
 void QBufferedFileWriter::addBuffer(const QString &bufferName, const QString &fileName) {
@@ -73,6 +78,21 @@ void QBufferedFileWriter::setFileName(const QString &bufferName, const QString &
     files[bufferName]->setFileName(fileName);
     files[bufferName]->open(QIODevice::WriteOnly);
     clear(bufferName);
+}
+
+void QBufferedFileWriter::setSingleFileMode(bool flag, const QString &fileName) {
+    if (flag) {
+        if (fileName.isEmpty()) return;
+        singleFileName = fileName;
+        singleFile = new QFile(singleFileName);
+        singleFile->open(QIODevice::WriteOnly);
+    } else {
+        if (singleFile->isOpen()) singleFile->close();
+        delete singleFile;
+        singleFile = nullptr;
+        singleFileName.clear();
+    }
+    singleFileMode = flag;
 }
 
 QDataStream &QBufferedFileWriter::stream(size_t index) { return *streams[bufferNames[index]]; }
@@ -117,7 +137,10 @@ void QBufferedFileWriter::flush() {
     for (const auto &bufferName : bufferNames) {
         QReadLocker locker(locks[bufferName]);
         if (buffers[bufferName]->buffer().isEmpty()) continue;
-        files[bufferName]->write(buffers[bufferName]->data());
+        if (singleFileMode)
+            singleFile->write(buffers[bufferName]->data());
+        else
+            files[bufferName]->write(buffers[bufferName]->data());
     }
     clear();  // due to the lock, clear() should be called here
 }
@@ -126,7 +149,10 @@ void QBufferedFileWriter::flush(const QString &bufferName) {
     if (buffers.contains(bufferName)) {
         QReadLocker locker(locks[bufferName]);
         if (buffers[bufferName]->buffer().isEmpty()) return;
-        files[bufferName]->write(buffers[bufferName]->data());
+        if (singleFileMode)
+            singleFile->write(buffers[bufferName]->data());
+        else
+            files[bufferName]->write(buffers[bufferName]->data());
     }
     clear(bufferName);  // due to the lock, clear() should be called here
 }

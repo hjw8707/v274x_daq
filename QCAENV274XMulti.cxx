@@ -196,11 +196,6 @@ void QCAENV274XMulti::initUI() {
         bytesPerSecondLabel->setText(QString("%1 kB/s").arg(totalBps / 1024, 0, 'f', 1));
         bpsProgressBar->setValue(static_cast<int>(totalBps / 1024));  // 게이지 업데이트
     });
-    // connect(thread, &DataAcquisitionThreadSingle::updateBytesPerSecond, this, [this](float bps) {
-    //     bytesPerSecondLabel->setText(QString("%1 kB/s").arg(bps / 1024, 0, 'f', 1));
-    //     bpsProgressBar->setValue(static_cast<int>(bps / 1024));  // 게이지 업데이트
-    // });
-    //////////////////////////////////////////////////////////////
 }
 
 void QCAENV274XMulti::runNS() {

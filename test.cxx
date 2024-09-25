@@ -29,12 +29,18 @@ void test(bool isBuffer1) {
 int main(int argc, char *argv[]) {
     QCoreApplication app(argc, argv);
 
-    QThread *thread1 = QThread::create([&]() { test(true); });
-    QThread *thread2 = QThread::create([&]() { test(false); });
-    thread1->start();
-    thread2->start();
+    QBufferedFileWriter *writer = QBufferedFileWriter::getInstance();
+    writer->addBuffer("buffer1");
+    writer->addBuffer("buffer2");
+    writer->setSingleFileMode(true, "test.txt");
+    writer->start();
 
-    thread1->wait();
-    thread2->wait();
+    for (int i = 0; i < 100; i++) {
+        writer->write("buffer1", QString("b1 %1\n").arg(i).toUtf8());
+        writer->write("buffer2", QString("b2 %1\n").arg(i).toUtf8());
+        qDebug() << "write" << i;
+        QThread::msleep(10);
+    }
+    writer->stop();
     return 0;
 }

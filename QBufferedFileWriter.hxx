@@ -44,6 +44,8 @@ class QBufferedFileWriter : public QObject {
     void removeBuffer(const QString &bufferName);
     void setFileName(const QString &bufferName, const QString &fileName);
 
+    void setSingleFileMode(bool flag, const QString &fileName = "");
+
     //////////////////////////////////////////////////////////
     // ! The functions below do not lock the buffer.
     // ! They can cause the problem in multi-thread environment.
@@ -72,6 +74,10 @@ class QBufferedFileWriter : public QObject {
    private:
     QBufferedFileWriter(QObject *parent = nullptr);
     ~QBufferedFileWriter();
+
+    bool singleFileMode;
+    QString singleFileName;
+    QFile *singleFile;
 
     QList<QString> bufferNames;
     QHash<QString, QBuffer *> buffers;
