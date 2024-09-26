@@ -41,9 +41,11 @@ int main(int argc, char *argv[]) {
     // 정지
     writer->stop();
 
+    QThread::sleep(10);
+
     // 버퍼 제거
     writer->removeBuffer("buffer1");
     writer->removeBuffer("buffer2");
 
-    return app.exec();
+    return 0;
 }

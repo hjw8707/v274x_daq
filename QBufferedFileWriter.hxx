@@ -1,7 +1,7 @@
 #ifndef QBUFFEREDFILEWRITER_HXX
 #define QBUFFEREDFILEWRITER_HXX
 
-#define SHM_SIZE 2621440  // 2.5 MB
+#define QSHM_SIZE 1048576  // 1 MB
 
 #include <QtCore/QBuffer>
 #include <QtCore/QCoreApplication>

@@ -55,7 +55,7 @@ void QBufferedFileWriter::addBuffer(const QString &bufferName, const QString &fi
     files[bufferName] = new QFile(fileName);
     buffers[bufferName] = new QBuffer();
     streams[bufferName] = new QDataStream(buffers[bufferName]);
-    sharedMemory[bufferName] = new QSharedMemory("shmkey_" + bufferName);
+    sharedMemory[bufferName] = new QSharedMemory("shm_" + bufferName);
     locks[bufferName] = new QReadWriteLock();
     files[bufferName]->open(QIODevice::WriteOnly);
     buffers[bufferName]->open(QIODevice::ReadWrite);
@@ -116,9 +116,10 @@ uint64_t QBufferedFileWriter::getFileSize(const QString &fileName) const {
 
 void QBufferedFileWriter::setShmSave(bool flag) {
     qDebug() << "QBufferedFileWriter::setShmSave():" << (flag ? "ON" : "OFF");
+    qDebug() << "QBufferedFileWriter::setShmSave(): SHM_SIZE" << QSHM_SIZE;
     if (flag) {  // SHM Saving
         for (const auto &bufferName : bufferNames) {
-            if (!sharedMemory[bufferName]->create(SHM_SIZE)) {
+            if (!sharedMemory[bufferName]->create(QSHM_SIZE)) {
                 if (sharedMemory[bufferName]->error() == QSharedMemory::AlreadyExists) {
                     sharedMemory[bufferName]->attach();
                 } else {
@@ -127,7 +128,9 @@ void QBufferedFileWriter::setShmSave(bool flag) {
                     throw std::runtime_error("Unable to create or attach to shared memory segment: " +
                                              sharedMemory[bufferName]->errorString().toStdString());
                 }
-            }
+            }  // SHM created
+            uint64_t size = 0;
+            memcpy(sharedMemory[bufferName]->data(), &size, sizeof(uint64_t));
         }
     } else {  // SHM Saving OFF
         for (const auto &bufferName : bufferNames) {
@@ -188,11 +191,11 @@ void QBufferedFileWriter::flush(const QString &bufferName) {
                    sizeof(uint64_t));  // 먼저 SHM 크기를 읽어옴
             uint64_t newDataSize = shmDataSize + buffers[bufferName]->buffer().size();
             // newDataSize > SHM_SIZE: Clear SHM
-            if (newDataSize > SHM_SIZE) newDataSize = buffers[bufferName]->buffer().size();
+            if (newDataSize > QSHM_SIZE) newDataSize = buffers[bufferName]->buffer().size();
             // Write size first to the SHM (first 8 bytes)
             memcpy(reinterpret_cast<uint64_t *>(sharedMemory[bufferName]->data()), &newDataSize, sizeof(uint64_t));
             // Write data to the SHM
-            memcpy(reinterpret_cast<char *>(sharedMemory[bufferName]->data()) + sizeof(uint64_t),
+            memcpy(reinterpret_cast<char *>(sharedMemory[bufferName]->data()) + sizeof(uint64_t) + shmDataSize,
                    buffers[bufferName]->data().data(), buffers[bufferName]->buffer().size());
             sharedMemory[bufferName]->unlock();
         }
