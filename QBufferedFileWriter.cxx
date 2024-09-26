@@ -20,9 +20,13 @@ void WriteThread::stop() { running = false; }
 QBufferedFileWriter::QBufferedFileWriter(QObject *parent)
     : QObject(parent), singleFileMode(false), singleFile(nullptr) {
     writeThread = new WriteThread(this);
+
+    qDebug() << "QBufferedFileWriter created";
 }
 
 QBufferedFileWriter::~QBufferedFileWriter() {
+    qDebug() << "QBufferedFileWriter destroyed";
+
     for (const auto &buffer : buffers) {
         buffer->close();
         delete buffer;
@@ -31,45 +35,54 @@ QBufferedFileWriter::~QBufferedFileWriter() {
         file->close();
         delete file;
     }
-    for (const auto &lock : locks) {
-        delete lock;
+    for (const auto &lock : locks) delete lock;
+
+    for (const auto &sharedMemory : sharedMemory) {
+        if (sharedMemory->isAttached()) sharedMemory->detach();
+        delete sharedMemory;
     }
-    for (const auto &stream : streams) {
-        delete stream;
-    }
+    for (const auto &stream : streams) delete stream;
+
     if (singleFile && singleFile->isOpen()) singleFile->close();
     delete singleFile;
 }
 void QBufferedFileWriter::addBuffer(const QString &bufferName) { addBuffer(bufferName, bufferName + ".dat"); }
 void QBufferedFileWriter::addBuffer(const QString &bufferName, const QString &fileName) {
+    qDebug() << "QBufferedFileWriter::addBuffer():" << bufferName << fileName;
     if (bufferNames.contains(bufferName)) return;
     if (writeThread->isRunning()) return;
     bufferNames.push_back(bufferName);
     files[bufferName] = new QFile(fileName);
     buffers[bufferName] = new QBuffer();
     streams[bufferName] = new QDataStream(buffers[bufferName]);
+    sharedMemory[bufferName] = new QSharedMemory("shmkey_" + bufferName);
     locks[bufferName] = new QReadWriteLock();
     files[bufferName]->open(QIODevice::WriteOnly);
     buffers[bufferName]->open(QIODevice::ReadWrite);
 }
 
 void QBufferedFileWriter::removeBuffer(const QString &bufferName) {
+    qDebug() << "QBufferedFileWriter::removeBuffer():" << bufferName;
     if (!bufferNames.contains(bufferName)) return;
     if (writeThread->isRunning()) return;
     files[bufferName]->close();
     buffers[bufferName]->close();
     delete files[bufferName];
     delete buffers[bufferName];
+    if (sharedMemory[bufferName]->isAttached()) sharedMemory[bufferName]->detach();
+    delete sharedMemory[bufferName];
     delete streams[bufferName];
     delete locks[bufferName];
     files.remove(bufferName);
     buffers.remove(bufferName);
+    sharedMemory.remove(bufferName);
     streams.remove(bufferName);
     locks.remove(bufferName);
     bufferNames.removeAll(bufferName);
 }
 
 void QBufferedFileWriter::setFileName(const QString &bufferName, const QString &fileName) {
+    qDebug() << "QBufferedFileWriter::setFileName():" << bufferName << "->" << fileName;
     if (!bufferNames.contains(bufferName)) return;
     if (writeThread->isRunning()) return;
 
@@ -81,6 +94,7 @@ void QBufferedFileWriter::setFileName(const QString &bufferName, const QString &
 }
 
 void QBufferedFileWriter::setSingleFileMode(bool flag, const QString &fileName) {
+    qDebug() << "QBufferedFileWriter::setSingleFileMode():" << (flag ? "ON" : "OFF") << "->" << fileName;
     if (flag) {
         if (fileName.isEmpty()) return;
         singleFileName = fileName;
@@ -93,6 +107,11 @@ void QBufferedFileWriter::setSingleFileMode(bool flag, const QString &fileName) 
         singleFileName.clear();
     }
     singleFileMode = flag;
+}
+
+uint64_t QBufferedFileWriter::getFileSize(const QString &fileName) const {
+    if (files.contains(fileName)) return files[fileName]->size();
+    return 0;
 }
 
 QDataStream &QBufferedFileWriter::stream(size_t index) { return *streams[bufferNames[index]]; }
@@ -158,11 +177,13 @@ void QBufferedFileWriter::flush(const QString &bufferName) {
 }
 
 void QBufferedFileWriter::start(bool flagClear) {
+    qDebug() << "QBufferedFileWriter::start()";
     if (flagClear) clear();
     writeThread->start();
 }
 
 void QBufferedFileWriter::stop() {
+    qDebug() << "QBufferedFileWriter::stop()";
     writeThread->stop();
     writeThread->wait();
 }

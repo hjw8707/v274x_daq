@@ -59,12 +59,8 @@ class SharedMemoryBuffer {
 int main() {
     SharedMemoryBuffer buffer("SharedMemoryKey");
 
-    QByteArray dataToWrite("Hello, shared memory!");
-    buffer.writeToBuffer(dataToWrite);
-
-    while (true) {
-        QThread::sleep(10);
-    }
+    QByteArray dataRead = buffer.readFromBuffer();
+    qDebug() << "Data read from shared memory:" << dataRead;
 
     return 0;
 }

@@ -38,30 +38,21 @@ class DataAcquisitionThreadSingle : public QThread {
      * @param daq The CAENV2740 object.
      */
     DataAcquisitionThreadSingle(CAENV2740 *daq, int _boardNumber, QString _boardName)
-        : daq(daq), boardNumber(_boardNumber), boardName(_boardName), fout(nullptr), shm(nullptr) {
+        : daq(daq), boardNumber(_boardNumber), boardName(_boardName) {
         writer = QBufferedFileWriter::getInstance();
     }
-    /**
-     * @brief This function sets the output file stream.
-     * @param fout The output file stream.
-     */
-    void setFout(std::ofstream *fout) { this->fout = fout; }
-    void setShm(SharedMemory *shm) { this->shm = shm; }
-    void setBoardName(const QString &boardName) { this->boardName = boardName; }
     void run() override;
 
    signals:
     void dataAcquired(uint8_t *data, size_t size);
     void updateBoardBps(int board, float bps);  // 바이트 수 업데이트 시그널
-    void updateMeasurementTime(qint64 time);    // 측정 시간 업데이트 시그널
+    void updateBoardTotalBytes(int board, uint64_t bytes);
+    void updateMeasurementTime(qint64 time);  // 측정 시간 업데이트 시그널
 
    private:
     CAENV2740 *daq;
     int boardNumber;
     QString boardName;
-
-    std::ofstream *fout;
-    SharedMemory *shm;
     QBufferedFileWriter *writer;
 };
 
@@ -75,7 +66,6 @@ class QCAENV2740 : public QWidget {
    signals:
     void statusUpdated(const QString &status);  // 상태 업데이트 시그널
     void removeDigitizer(QCAENV2740 *digitizer);
-    void updateBoardTotalBytes(int board, uint64_t bytes);
 
    public:
     QCAENV2740(const char *ip, int _boardNumber = 0, QString _boardName = "", QWidget *parent = nullptr);
@@ -94,7 +84,6 @@ class QCAENV2740 : public QWidget {
     void closeEvent(QCloseEvent *event) override;
 
    private:
-    bool verbose;
     int boardNumber;
     QString boardName;
 
@@ -109,9 +98,6 @@ class QCAENV2740 : public QWidget {
 
     DataAcquisitionThreadSingle *thread;
 
-    SharedMemory *shm;
-    std::ofstream fout;
-
     void initUI();
     void initDAQ();
 
@@ -120,8 +106,6 @@ class QCAENV2740 : public QWidget {
     void resetDAQ();
     void rebootDAQ();
     void disconnectDAQ();
-
-    // void rawDataAcquisition();
 
     void loadParameter();
     void viewParameter();

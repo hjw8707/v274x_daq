@@ -179,6 +179,10 @@ add_executable(test test.cxx)
 target_include_directories(test PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
 target_link_libraries(test PRIVATE v2740 ${ROOT_LIBRARIES} Qt6::Core Qt6::Widgets)
 
+add_executable(test2 test2.cxx)
+target_include_directories(test2 PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(test2 PRIVATE v2740 ${ROOT_LIBRARIES} Qt6::Core Qt6::Widgets)
+
 
 # 옵션으로 디버깅 정보 생성
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

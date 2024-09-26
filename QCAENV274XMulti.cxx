@@ -27,7 +27,9 @@
 // QCAENV274XMulti
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 QCAENV274XMulti::QCAENV274XMulti(QWidget *parent)
-    : verbose(false), isRunning(false), numOfDigitizers(0), digitizers(), QMainWindow(parent) {
+    : isRunning(false), numOfDigitizers(0), digitizers(), QMainWindow(parent) {
+    qDebug() << "QCAENV274XMulti constructor";
+
     setWindowTitle("V274X Multi DAQ");
     setWindowIcon(QIcon("icons/dig_v2740.png"));
 
@@ -35,8 +37,6 @@ QCAENV274XMulti::QCAENV274XMulti(QWidget *parent)
     elapsedTimer = new QElapsedTimer();
 
     writer = QBufferedFileWriter::getInstance();
-
-    verbose = true;
     nosave = false;
 
     // GUI 초기화
@@ -45,6 +45,8 @@ QCAENV274XMulti::QCAENV274XMulti(QWidget *parent)
 }
 
 QCAENV274XMulti::~QCAENV274XMulti() {
+    qDebug() << "QCAENV274XMulti destructor";
+
     // 자원 해제 코드
     if (updateTimer) {
         delete updateTimer;
@@ -54,13 +56,11 @@ QCAENV274XMulti::~QCAENV274XMulti() {
         delete elapsedTimer;
         elapsedTimer = nullptr;
     }
-    // if (writer) {
-    //     delete writer;
-    //     writer = nullptr;
-    // }
 }
 
 void QCAENV274XMulti::initUI() {
+    qDebug() << "QCAENV274XMulti::initUI()";
+
     // GUI 구성 요소 설정
     resize(800, 600);
     QWidget *centralWidget = new QWidget(this);
@@ -204,6 +204,7 @@ void QCAENV274XMulti::runNS() {
 }
 
 void QCAENV274XMulti::run() {
+    qDebug() << "QCAENV274XMulti::run()";
     if (numOfDigitizers == 0) {
         QMessageBox::warning(this, "No Digitizer", "No digitizer connected.");
         nosave = false;
@@ -250,6 +251,8 @@ void QCAENV274XMulti::run() {
 }
 
 void QCAENV274XMulti::stop() {
+    qDebug() << "QCAENV274XMulti::stop()";
+
     for (QCAENV2740 *digitizer : digitizers) digitizer->stopDAQ();
 
     updateTimer->stop();
@@ -267,6 +270,7 @@ void QCAENV274XMulti::stop() {
 }
 
 void QCAENV274XMulti::addDigitizer() {
+    qDebug() << "QCAENV274XMulti::addDigitizer()";
     QString newBoardName = boardLineEdit->text();
 
     QString newIp = ipLineEdit->text();
@@ -276,8 +280,7 @@ void QCAENV274XMulti::addDigitizer() {
             return;
         }
     }
-    if (verbose) std::cout << "Add Digitizer" << std::endl;
-    if (verbose) std::cout << "newIp: " << newIp.toStdString() << std::endl;
+    qDebug() << "Add Digitizer with newIp: " << newIp;
 
     QString connectStr = "dig2://" + newIp;
     if (CAENV2740::available(connectStr.toStdString())) {
@@ -288,16 +291,18 @@ void QCAENV274XMulti::addDigitizer() {
         connect(digitizers.last(), &QCAENV2740::removeDigitizer, this, &QCAENV274XMulti::removeDigitizer);
         connect(digitizers.last()->getThread(), &DataAcquisitionThreadSingle::updateBoardBps, this,
                 &QCAENV274XMulti::updateBoardBps);
-        connect(digitizers.last(), &QCAENV2740::updateBoardTotalBytes, this, &QCAENV274XMulti::updateBoardTotalBytes);
+        connect(digitizers.last()->getThread(), &DataAcquisitionThreadSingle::updateBoardTotalBytes, this,
+                &QCAENV274XMulti::updateBoardTotalBytes);
         writer->addBuffer(newBoardName);
-        if (verbose) std::cout << "Digitizer Added" << std::endl;
+        qDebug() << "Digitizer Added";
     } else {
-        if (verbose) std::cout << "Digitizer Not Added" << std::endl;
+        qDebug() << "Digitizer Not Added";
     }
     updateDigitizerLabel();
 }
 
 void QCAENV274XMulti::removeDigitizer(QCAENV2740 *digitizer) {
+    qDebug() << "QCAENV274XMulti::removeDigitizer()";
     digitizerTabWidget->removeTab(digitizerTabWidget->indexOf(digitizer));
     digitizers.removeOne(digitizer);
     writer->removeBuffer(digitizer->getBoardName());
@@ -318,6 +323,7 @@ void QCAENV274XMulti::closeEvent(QCloseEvent *event) {
 }
 
 void QCAENV274XMulti::updateStatus(bool running) {
+    qDebug() << "QCAENV274XMulti::updateStatus(): " << (running ? "Running" : "Stopped");
     isRunning = running;
     if (running) {
         ipLineEdit->setEnabled(false);
@@ -330,12 +336,7 @@ void QCAENV274XMulti::updateStatus(bool running) {
         runNSButton->setEnabled(false);
         stopButton->setEnabled(true);
         exitButton->setEnabled(false);
-
-        if (nosave) {
-            statusLabel->setText("Status: Running (No Save)");
-        } else {
-            statusLabel->setText("Status: Running");
-        }
+        statusLabel->setText("Status: Running" + QString(nosave ? " (No Save)" : ""));
         // statusIconLabel->setPixmap(style()->standardPixmap(QStyle::SP_MediaPlay));
     } else {
         ipLineEdit->setEnabled(true);

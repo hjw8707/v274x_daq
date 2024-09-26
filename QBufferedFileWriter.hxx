@@ -7,6 +7,7 @@
 #include <QtCore/QFile>
 #include <QtCore/QMutex>
 #include <QtCore/QReadWriteLock>
+#include <QtCore/QSharedMemory>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 #include <QtCore/QWaitCondition>
@@ -46,6 +47,7 @@ class QBufferedFileWriter : public QObject {
 
     void setSingleFileMode(bool flag, const QString &fileName = "");
 
+    uint64_t getFileSize(const QString &fileName) const;
     //////////////////////////////////////////////////////////
     // ! The functions below do not lock the buffer.
     // ! They can cause the problem in multi-thread environment.
@@ -83,6 +85,7 @@ class QBufferedFileWriter : public QObject {
     QHash<QString, QBuffer *> buffers;
     QHash<QString, QDataStream *> streams;
     QHash<QString, QFile *> files;
+    QHash<QString, QSharedMemory *> sharedMemory;
     QHash<QString, QReadWriteLock *> locks;
     WriteThread *writeThread;
 };

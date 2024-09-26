@@ -51,7 +51,6 @@ class QCAENV274XMulti : public QMainWindow {
    private:
     void updateStatus(bool running);
 
-    bool verbose;
     int numOfDigitizers;
     bool isRunning;
 
