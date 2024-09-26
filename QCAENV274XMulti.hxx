@@ -86,6 +86,7 @@ class QCAENV274XMulti : public QMainWindow {
     QLabel *fileSizeLabel;
 
     QTimer *updateTimer;
+    QTimer *measurementTimer;
     QElapsedTimer *elapsedTimer;
 
     QPushButton *connectButton;

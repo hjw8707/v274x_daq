@@ -1,7 +1,7 @@
 #ifndef SHAREDMEMORY_H
 #define SHAREDMEMORY_H
 
-#define SHM_SIZE 2621440
+#define SHM_SIZE 1048576  // 1 MB
 
 #include <fcntl.h>
 #include <semaphore.h>

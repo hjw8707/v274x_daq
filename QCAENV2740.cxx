@@ -33,6 +33,7 @@
  * @details It is responsible for running the data acquisition thread.
  */
 void DataAcquisitionThreadSingle::run() {
+    qDebug() << "DataAcquisitionThreadSingle::run()";
     size_t size = 0;
     uint8_t *data = new uint8_t[2621440];
     uint32_t nevent_raw = 0;
@@ -50,13 +51,13 @@ void DataAcquisitionThreadSingle::run() {
                 nbunch++;
                 break;
             case CAEN_FELib_Timeout:
-                std::cout << "CAEN_FELib_Timeout" << std::endl;
+                qWarning() << "CAEN_FELib_Timeout";
                 break;
             case CAEN_FELib_Stop:
-                std::cout << "CAEN_FELib_Stop" << std::endl;
+                qWarning() << "CAEN_FELib_Stop";
                 break;
             default:
-                std::cout << "CAEN_FELib_Error" << std::endl;
+                qWarning() << "CAEN_FELib_Error";
                 break;
         }
         if (timer.elapsed() >= 1000) {
@@ -78,7 +79,8 @@ void DataAcquisitionThreadSingle::run() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 QCAENV2740::QCAENV2740(const char *ipAddress, int _boardNumber, QString _boardName, QWidget *parent)
     : currentStatus(-1), boardNumber(_boardNumber), boardName(_boardName), QWidget(parent) {
-    qDebug() << "QCAENV2740 constructor";
+    qDebug() << "QCAENV2740 constructor with IP: " << ipAddress << " boardNumber: " << boardNumber
+             << " boardName: " << boardName;
     this->ipAddress = QString(ipAddress);
 
     if (boardName.isEmpty()) boardName = QString("%1").arg(boardNumber, 2, 10, QChar('0'));
@@ -87,8 +89,6 @@ QCAENV2740::QCAENV2740(const char *ipAddress, int _boardNumber, QString _boardNa
     initDAQ();
     // GUI 초기화
     initUI();
-
-    // shm = new SharedMemory("/" + model.toStdString() + "_" + QString::number(boardNumber).toStdString());
 }
 
 QCAENV2740::~QCAENV2740() {

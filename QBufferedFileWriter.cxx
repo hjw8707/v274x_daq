@@ -18,7 +18,7 @@ void WriteThread::stop() { running = false; }
 // QBufferedFileWriter
 ////////////////////////////////////////////////////////////
 QBufferedFileWriter::QBufferedFileWriter(QObject *parent)
-    : QObject(parent), singleFileMode(false), singleFile(nullptr) {
+    : QObject(parent), singleFileMode(false), singleFile(nullptr), shmSave(false) {
     writeThread = new WriteThread(this);
 
     qDebug() << "QBufferedFileWriter created";
@@ -114,6 +114,28 @@ uint64_t QBufferedFileWriter::getFileSize(const QString &fileName) const {
     return 0;
 }
 
+void QBufferedFileWriter::setShmSave(bool flag) {
+    qDebug() << "QBufferedFileWriter::setShmSave():" << (flag ? "ON" : "OFF");
+    if (flag) {  // SHM Saving
+        for (const auto &bufferName : bufferNames) {
+            if (!sharedMemory[bufferName]->create(SHM_SIZE)) {
+                if (sharedMemory[bufferName]->error() == QSharedMemory::AlreadyExists) {
+                    sharedMemory[bufferName]->attach();
+                } else {
+                    qCritical() << "Unable to create or attach to shared memory segment: "
+                                << sharedMemory[bufferName]->errorString();
+                    throw std::runtime_error("Unable to create or attach to shared memory segment: " +
+                                             sharedMemory[bufferName]->errorString().toStdString());
+                }
+            }
+        }
+    } else {  // SHM Saving OFF
+        for (const auto &bufferName : bufferNames) {
+            if (sharedMemory[bufferName]->isAttached()) sharedMemory[bufferName]->detach();
+        }
+    }
+    shmSave = flag;
+}
 QDataStream &QBufferedFileWriter::stream(size_t index) { return *streams[bufferNames[index]]; }
 
 QDataStream &QBufferedFileWriter::stream(const QString &bufferName) { return *streams[bufferName]; }
@@ -131,47 +153,49 @@ void QBufferedFileWriter::clear() {
 }
 
 void QBufferedFileWriter::clear(const QString &bufferName) {
-    if (buffers.contains(bufferName)) {
-        QWriteLocker locker(locks[bufferName]);
-        buffers[bufferName]->reset();
-        buffers[bufferName]->buffer().clear();
-    }
+    QWriteLocker locker(locks[bufferName]);
+    buffers[bufferName]->reset();
+    buffers[bufferName]->buffer().clear();
 }
 
 void QBufferedFileWriter::write(const QString &bufferName, const QByteArray &data) {
-    if (buffers.contains(bufferName)) {
-        QWriteLocker locker(locks[bufferName]);
-        buffers[bufferName]->write(data);
-    }
+    QWriteLocker locker(locks[bufferName]);
+    buffers[bufferName]->write(data);
 }
 
 void QBufferedFileWriter::write(const QString &bufferName, const char *data, size_t size) {
-    if (buffers.contains(bufferName)) {
-        QWriteLocker locker(locks[bufferName]);
-        buffers[bufferName]->write(data, size);
-    }
+    QWriteLocker locker(locks[bufferName]);
+    buffers[bufferName]->write(data, size);
 }
 
 void QBufferedFileWriter::flush() {
-    for (const auto &bufferName : bufferNames) {
-        QReadLocker locker(locks[bufferName]);
-        if (buffers[bufferName]->buffer().isEmpty()) continue;
-        if (singleFileMode)
-            singleFile->write(buffers[bufferName]->data());
-        else
-            files[bufferName]->write(buffers[bufferName]->data());
-    }
-    clear();  // due to the lock, clear() should be called here
+    for (const auto &bufferName : bufferNames) flush(bufferName);
 }
 
 void QBufferedFileWriter::flush(const QString &bufferName) {
-    if (buffers.contains(bufferName)) {
+    {  // write to file
         QReadLocker locker(locks[bufferName]);
         if (buffers[bufferName]->buffer().isEmpty()) return;
         if (singleFileMode)
             singleFile->write(buffers[bufferName]->data());
         else
             files[bufferName]->write(buffers[bufferName]->data());
+        // write to shared memory
+        if (shmSave) {
+            sharedMemory[bufferName]->lock();
+            uint64_t shmDataSize;
+            memcpy(&shmDataSize, reinterpret_cast<uint64_t *>(sharedMemory[bufferName]->data()),
+                   sizeof(uint64_t));  // 먼저 SHM 크기를 읽어옴
+            uint64_t newDataSize = shmDataSize + buffers[bufferName]->buffer().size();
+            // newDataSize > SHM_SIZE: Clear SHM
+            if (newDataSize > SHM_SIZE) newDataSize = buffers[bufferName]->buffer().size();
+            // Write size first to the SHM (first 8 bytes)
+            memcpy(reinterpret_cast<uint64_t *>(sharedMemory[bufferName]->data()), &newDataSize, sizeof(uint64_t));
+            // Write data to the SHM
+            memcpy(reinterpret_cast<char *>(sharedMemory[bufferName]->data()) + sizeof(uint64_t),
+                   buffers[bufferName]->data().data(), buffers[bufferName]->buffer().size());
+            sharedMemory[bufferName]->unlock();
+        }
     }
     clear(bufferName);  // due to the lock, clear() should be called here
 }

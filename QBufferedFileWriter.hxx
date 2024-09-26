@@ -1,6 +1,8 @@
 #ifndef QBUFFEREDFILEWRITER_HXX
 #define QBUFFEREDFILEWRITER_HXX
 
+#define SHM_SIZE 2621440  // 2.5 MB
+
 #include <QtCore/QBuffer>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDataStream>
@@ -43,9 +45,12 @@ class QBufferedFileWriter : public QObject {
     void addBuffer(const QString &bufferName);
     void addBuffer(const QString &bufferName, const QString &fileName);
     void removeBuffer(const QString &bufferName);
-    void setFileName(const QString &bufferName, const QString &fileName);
 
+    void setFileName(const QString &bufferName, const QString &fileName);
     void setSingleFileMode(bool flag, const QString &fileName = "");
+
+    void setShmSave(bool flag);
+    bool getShmSave() const { return shmSave; }
 
     uint64_t getFileSize(const QString &fileName) const;
     //////////////////////////////////////////////////////////
@@ -80,6 +85,8 @@ class QBufferedFileWriter : public QObject {
     bool singleFileMode;
     QString singleFileName;
     QFile *singleFile;
+
+    bool shmSave;
 
     QList<QString> bufferNames;
     QHash<QString, QBuffer *> buffers;

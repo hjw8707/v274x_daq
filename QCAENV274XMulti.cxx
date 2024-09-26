@@ -34,6 +34,9 @@ QCAENV274XMulti::QCAENV274XMulti(QWidget *parent)
     setWindowIcon(QIcon("icons/dig_v2740.png"));
 
     updateTimer = new QTimer(this);
+    measurementTimer = new QTimer(this);
+    measurementTimer->setSingleShot(true);
+    connect(measurementTimer, &QTimer::timeout, this, &QCAENV274XMulti::stop);
     elapsedTimer = new QElapsedTimer();
 
     writer = QBufferedFileWriter::getInstance();
@@ -48,14 +51,9 @@ QCAENV274XMulti::~QCAENV274XMulti() {
     qDebug() << "QCAENV274XMulti destructor";
 
     // 자원 해제 코드
-    if (updateTimer) {
-        delete updateTimer;
-        updateTimer = nullptr;
-    }
-    if (elapsedTimer) {
-        delete elapsedTimer;
-        elapsedTimer = nullptr;
-    }
+    if (updateTimer) delete updateTimer;
+    if (elapsedTimer) delete elapsedTimer;
+    if (measurementTimer) delete measurementTimer;
 }
 
 void QCAENV274XMulti::initUI() {
@@ -242,8 +240,7 @@ void QCAENV274XMulti::run() {
     for (QCAENV2740 *digitizer : digitizers) digitizer->runDAQ();
 
     // 측정 시간이 0보다 크면 측정 시간 타이머 시작
-    if (measurementTimeSpinBox->value() > 0)
-        QTimer::singleShot(measurementTimeSpinBox->value() * 1000, this, &QCAENV274XMulti::stop);
+    if (measurementTimeSpinBox->value() > 0) measurementTimer->start(measurementTimeSpinBox->value() * 1000);
 
     elapsedTimer->start();
     updateTimer->start(100);  // 100ms 마다 업데이트
@@ -252,6 +249,7 @@ void QCAENV274XMulti::run() {
 
 void QCAENV274XMulti::stop() {
     qDebug() << "QCAENV274XMulti::stop()";
+    if (measurementTimer->isActive()) measurementTimer->stop();
 
     for (QCAENV2740 *digitizer : digitizers) digitizer->stopDAQ();
 
@@ -280,7 +278,7 @@ void QCAENV274XMulti::addDigitizer() {
             return;
         }
     }
-    qDebug() << "Add Digitizer with newIp: " << newIp;
+    qDebug() << "Add Digitizer with newIp: " << newIp << ", newBoardName: " << newBoardName;
 
     QString connectStr = "dig2://" + newIp;
     if (CAENV2740::available(connectStr.toStdString())) {

@@ -24,7 +24,6 @@
 #include "QtWidgets/QTreeWidget"
 #include "QtWidgets/QVBoxLayout"
 #include "QtWidgets/QWidget"
-#include "SharedMemory.hxx"  // SharedMemory 클래스 포함
 
 /**
  * @brief This class is the DataAcquisitionThread class.
@@ -39,6 +38,7 @@ class DataAcquisitionThreadSingle : public QThread {
      */
     DataAcquisitionThreadSingle(CAENV2740 *daq, int _boardNumber, QString _boardName)
         : daq(daq), boardNumber(_boardNumber), boardName(_boardName) {
+        qDebug() << "DataAcquisitionThreadSingle constructor";
         writer = QBufferedFileWriter::getInstance();
     }
     void run() override;
