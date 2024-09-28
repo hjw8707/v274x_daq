@@ -68,7 +68,7 @@ class QCAENV2740 : public QWidget {
     void removeDigitizer(QCAENV2740 *digitizer);
 
    public:
-    QCAENV2740(const char *ip, int _boardNumber = 0, QString _boardName = "", QWidget *parent = nullptr);
+    QCAENV2740(QString _ipAddress, int _boardNumber = 0, QString _boardName = "", QWidget *parent = nullptr);
     virtual ~QCAENV2740();  // 가상 소멸자 추가
 
     const std::string getIPAddress() const { return ipAddress.toStdString(); }
@@ -76,7 +76,7 @@ class QCAENV2740 : public QWidget {
 
     DataAcquisitionThreadSingle *getThread() const { return thread; }
 
-    void readyDAQ(QString fileName, bool nosave = false);
+    void readyDAQ();
     void runDAQ();
     void stopDAQ();
 

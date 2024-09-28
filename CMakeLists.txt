@@ -36,8 +36,8 @@ set(V2740_SOURCES
     QCAENV2740.cxx
     QCAENV2740Single.cxx
     QCAENV274XMulti.cxx
-    SharedMemory.cxx
-    OnlineMonitor.cxx
+    QOnlineMonitor.cxx
+    QOnlineMonitorWindow.cxx
     QBufferedFileWriter.cxx
     # 필요한 다른 소스 파일들을 여기에 추가하세요
 )
@@ -144,29 +144,15 @@ install(TARGETS raw2root
 #########################################################################
 
 #########################################################################
-# sm_reader: console application for reading shared memory
+# v274xm_mon: Qt application for online monitoring
 #########################################################################
-# sm_reader 컴파일 관련 내용 추가
-add_executable(sm_reader sm_reader.cxx)
-target_include_directories(sm_reader PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(sm_reader PRIVATE v2740 ${ROOT_LIBRARIES})
+# v274xm_mon 컴파일 관련 내용 추가
+add_executable(v274xm_mon v274xm_mon.cxx)
+target_include_directories(v274xm_mon PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(v274xm_mon PRIVATE v2740 ${ROOT_LIBRARIES} Qt6::Core Qt6::Widgets Qt6::Charts)
 
-# sm_reader 실행 파일 설치
-install(TARGETS sm_reader
-    RUNTIME DESTINATION bin
-)
-#########################################################################
-
-#########################################################################
-# v274x_mon: Qt application for online monitoring
-#########################################################################
-# v274x_mon 컴파일 관련 내용 추가
-add_executable(v274x_mon v274x_mon.cxx)
-target_include_directories(v274x_mon PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(v274x_mon PRIVATE v2740 ${ROOT_LIBRARIES})
-
-# v274x_mon 실행 파일 설치
-install(TARGETS v274x_mon
+# v274xm_mon 실행 파일 설치
+install(TARGETS v274xm_mon
     RUNTIME DESTINATION bin
 )
 #########################################################################

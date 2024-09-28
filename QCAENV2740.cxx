@@ -77,13 +77,13 @@ void DataAcquisitionThreadSingle::run() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // QCAENV2740
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-QCAENV2740::QCAENV2740(const char *ipAddress, int _boardNumber, QString _boardName, QWidget *parent)
+QCAENV2740::QCAENV2740(QString _ipAddress, int _boardNumber, QString _boardName, QWidget *parent)
     : currentStatus(-1), boardNumber(_boardNumber), boardName(_boardName), QWidget(parent) {
     qDebug() << "QCAENV2740 constructor with IP: " << ipAddress << " boardNumber: " << boardNumber
              << " boardName: " << boardName;
-    this->ipAddress = QString(ipAddress);
+    ipAddress = _ipAddress;
 
-    if (boardName.isEmpty()) boardName = QString("%1").arg(boardNumber, 2, 10, QChar('0'));
+    if (boardName.isEmpty()) boardName = QString("dig%1").arg(boardNumber, 2, 10, QChar('0'));
 
     //  CAENV2740 초기화
     initDAQ();
@@ -111,24 +111,33 @@ void QCAENV2740::initUI() {
     QVBoxLayout *layout = new QVBoxLayout(this);
 
     //////////////////////////////////////////////////////////////
-    // Connect Layout
-    QHBoxLayout *connectLayout = new QHBoxLayout();
-    layout->addLayout(connectLayout);
+    // Information Layout
+    QHBoxLayout *infoLayout = new QHBoxLayout();
+    layout->addLayout(infoLayout);
 
+    QLabel *boardNameLabel = new QLabel(QString("Board Name: %1").arg(boardName));
     QLabel *ipLabel = new QLabel(QString("IP Address: %1").arg(ipAddress));
     QLabel *modelLabel = new QLabel(QString("Model: %1").arg(model));
+
+    infoLayout->addWidget(boardNameLabel);
+    infoLayout->addWidget(ipLabel);
+    infoLayout->addWidget(modelLabel);
+    //////////////////////////////////////////////////////////////
+
+    //////////////////////////////////////////////////////////////
+    // Control Layout
+    QHBoxLayout *controlLayout = new QHBoxLayout();
+    layout->addLayout(controlLayout);
+
     clearButton = new QPushButton("C&lear");
     resetButton = new QPushButton("\u21bb &Reset");
     rebootButton = new QPushButton("\u21b6 Re&boot");
     disconnectButton = new QPushButton("&Disconnect");
 
-    connectLayout->addWidget(ipLabel);
-    connectLayout->addWidget(modelLabel);
-
-    connectLayout->addWidget(clearButton);
-    connectLayout->addWidget(resetButton);
-    connectLayout->addWidget(rebootButton);
-    connectLayout->addWidget(disconnectButton);
+    controlLayout->addWidget(clearButton);
+    controlLayout->addWidget(resetButton);
+    controlLayout->addWidget(rebootButton);
+    controlLayout->addWidget(disconnectButton);
     //  ... 추가 GUI 구성 ...
 
     connect(clearButton, &QPushButton::clicked, this, &QCAENV2740::clearDAQ);
@@ -244,9 +253,9 @@ void QCAENV2740::initDAQ() {
     daq = new CAENV2740();
     daq->setVerbose(true);
 
-    connectDAQ();
-    model = QString::fromStdString(daq->readModelName());
-
+    // connectDAQ();
+    //  model = QString::fromStdString(daq->readModelName());
+    model = "V2740";
     par = new CAENV2740Par();
 
     thread = new DataAcquisitionThreadSingle(daq, boardNumber, boardName);
@@ -282,7 +291,7 @@ void QCAENV2740::rebootDAQ() {
 
 void QCAENV2740::disconnectDAQ() {
     qDebug() << "QCAENV2740::disconnectDAQ()";
-    daq->close();
+    // daq->close();
     setStatus(0);
 
     emit removeDigitizer(this);
@@ -386,10 +395,9 @@ void QCAENV2740::applyParameter() {
     daq->loadParameter(*par);
 }
 
-void QCAENV2740::readyDAQ(QString fileName, bool nosave) {
+void QCAENV2740::readyDAQ() {
     qDebug() << "QCAENV2740::readyDAQ()";
     applySettings();
-    fileName += QString("_%1").arg(boardName);
 
     daq->clear();
     daq->armAcquisition();

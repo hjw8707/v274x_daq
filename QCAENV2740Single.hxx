@@ -5,6 +5,7 @@
 
 #include "CAENV2740.hxx"  // CAENV2740 클래스 포함
 #include "CAENV2740Par.hxx"
+#include "QBufferedFileWriter.hxx"
 #include "QtCore/QElapsedTimer"
 #include "QtCore/QThread"
 #include "QtCore/QTimer"
@@ -23,7 +24,6 @@
 #include "QtWidgets/QTreeWidget"
 #include "QtWidgets/QVBoxLayout"
 #include "QtWidgets/QWidget"
-#include "SharedMemory.hxx"  // SharedMemory 클래스 포함
 
 /**
  * @brief This class is the DataAcquisitionThread class.
@@ -36,13 +36,10 @@ class DataAcquisitionThread : public QThread {
      * @brief This is the constructor of the DataAcquisitionThread class.
      * @param daq The CAENV2740 object.
      */
-    DataAcquisitionThread(CAENV2740 *daq) : daq(daq), fout(nullptr), shm(nullptr) {}
-    /**
-     * @brief This function sets the output file stream.
-     * @param fout The output file stream.
-     */
-    void setFout(std::ofstream *fout) { this->fout = fout; }
-    void setShm(SharedMemory *shm) { this->shm = shm; }
+    DataAcquisitionThread(CAENV2740 *daq) : daq(daq) {
+        qDebug() << "DataAcquisitionThread constructor";
+        writer = QBufferedFileWriter::getInstance();
+    }
     void run() override;
 
    signals:
@@ -52,8 +49,7 @@ class DataAcquisitionThread : public QThread {
 
    private:
     CAENV2740 *daq;
-    std::ofstream *fout;
-    SharedMemory *shm;
+    QBufferedFileWriter *writer;
 };
 
 /**
@@ -87,8 +83,7 @@ class QCAENV2740Single : public QMainWindow {
 
     DataAcquisitionThread *thread;
 
-    SharedMemory *shm;
-    std::ofstream fout;
+    QBufferedFileWriter *writer;
 
     void initUI();
     void initDAQ();

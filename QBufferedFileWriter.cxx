@@ -18,7 +18,7 @@ void WriteThread::stop() { running = false; }
 // QBufferedFileWriter
 ////////////////////////////////////////////////////////////
 QBufferedFileWriter::QBufferedFileWriter(QObject *parent)
-    : QObject(parent), singleFileMode(false), singleFile(nullptr), shmSave(false) {
+    : QObject(parent), singleFileMode(false), singleFile(nullptr), shmSave(false), fileSave(true) {
     writeThread = new WriteThread(this);
 
     qDebug() << "QBufferedFileWriter created";
@@ -56,6 +56,7 @@ void QBufferedFileWriter::addBuffer(const QString &bufferName, const QString &fi
     buffers[bufferName] = new QBuffer();
     streams[bufferName] = new QDataStream(buffers[bufferName]);
     sharedMemory[bufferName] = new QSharedMemory("shm_" + bufferName);
+    if (shmSave) attachShm(bufferName);
     locks[bufferName] = new QReadWriteLock();
     files[bufferName]->open(QIODevice::WriteOnly);
     buffers[bufferName]->open(QIODevice::ReadWrite);
@@ -81,6 +82,36 @@ void QBufferedFileWriter::removeBuffer(const QString &bufferName) {
     bufferNames.removeAll(bufferName);
 }
 
+void QBufferedFileWriter::openFile(const QString &bufferName) {
+    qDebug() << "QBufferedFileWriter::openFile():" << bufferName;
+    if (!bufferNames.contains(bufferName)) return;
+    if (writeThread->isRunning()) return;
+    files[bufferName]->open(QIODevice::WriteOnly);
+}
+
+void QBufferedFileWriter::openFile() {
+    qDebug() << "QBufferedFileWriter::openFile()";
+    if (singleFileMode)
+        singleFile->open(QIODevice::WriteOnly);
+    else
+        for (const auto &bufferName : bufferNames) openFile(bufferName);
+}
+
+void QBufferedFileWriter::closeFile(const QString &bufferName) {
+    qDebug() << "QBufferedFileWriter::closeFile():" << bufferName;
+    if (!bufferNames.contains(bufferName)) return;
+    if (writeThread->isRunning()) return;
+    files[bufferName]->close();
+}
+
+void QBufferedFileWriter::closeFile() {
+    qDebug() << "QBufferedFileWriter::closeFile()";
+    if (singleFileMode)
+        singleFile->close();
+    else
+        for (const auto &bufferName : bufferNames) closeFile(bufferName);
+}
+
 void QBufferedFileWriter::setFileName(const QString &bufferName, const QString &fileName) {
     qDebug() << "QBufferedFileWriter::setFileName():" << bufferName << "->" << fileName;
     if (!bufferNames.contains(bufferName)) return;
@@ -99,7 +130,6 @@ void QBufferedFileWriter::setSingleFileMode(bool flag, const QString &fileName) 
         if (fileName.isEmpty()) return;
         singleFileName = fileName;
         singleFile = new QFile(singleFileName);
-        singleFile->open(QIODevice::WriteOnly);
     } else {
         if (singleFile->isOpen()) singleFile->close();
         delete singleFile;
@@ -114,28 +144,34 @@ uint64_t QBufferedFileWriter::getFileSize(const QString &fileName) const {
     return 0;
 }
 
+void QBufferedFileWriter::attachShm(const QString &bufferName) {
+    qDebug() << "QBufferedFileWriter::attachShm():" << bufferName;
+    if (sharedMemory[bufferName]->isAttached()) return;
+    if (!sharedMemory[bufferName]->create(QSHM_SIZE)) {
+        if (sharedMemory[bufferName]->error() == QSharedMemory::AlreadyExists) {
+            qDebug() << "QBufferedFileWriter::attachShm(): already exists";
+            sharedMemory[bufferName]->attach();
+        } else {
+            qCritical() << "Unable to create or attach to shared memory segment: "
+                        << sharedMemory[bufferName]->errorString();
+            throw std::runtime_error("Unable to create or attach to shared memory segment: " +
+                                     sharedMemory[bufferName]->errorString().toStdString());
+        }
+    }  // SHM created
+    qDebug() << "QBufferedFileWriter::attachShm(): created with SHM_SIZE" << QSHM_SIZE;
+    uint64_t size = 0;
+    memcpy(sharedMemory[bufferName]->data(), &size, sizeof(uint64_t));  // write size = 0
+}
+
+void QBufferedFileWriter::detachShm(const QString &bufferName) {
+    qDebug() << "QBufferedFileWriter::detachShm():" << bufferName;
+    if (sharedMemory[bufferName]->isAttached()) sharedMemory[bufferName]->detach();
+}
 void QBufferedFileWriter::setShmSave(bool flag) {
     qDebug() << "QBufferedFileWriter::setShmSave():" << (flag ? "ON" : "OFF");
     qDebug() << "QBufferedFileWriter::setShmSave(): SHM_SIZE" << QSHM_SIZE;
-    if (flag) {  // SHM Saving
-        for (const auto &bufferName : bufferNames) {
-            if (!sharedMemory[bufferName]->create(QSHM_SIZE)) {
-                if (sharedMemory[bufferName]->error() == QSharedMemory::AlreadyExists) {
-                    sharedMemory[bufferName]->attach();
-                } else {
-                    qCritical() << "Unable to create or attach to shared memory segment: "
-                                << sharedMemory[bufferName]->errorString();
-                    throw std::runtime_error("Unable to create or attach to shared memory segment: " +
-                                             sharedMemory[bufferName]->errorString().toStdString());
-                }
-            }  // SHM created
-            uint64_t size = 0;
-            memcpy(sharedMemory[bufferName]->data(), &size, sizeof(uint64_t));
-        }
-    } else {  // SHM Saving OFF
-        for (const auto &bufferName : bufferNames) {
-            if (sharedMemory[bufferName]->isAttached()) sharedMemory[bufferName]->detach();
-        }
+    for (const auto &bufferName : bufferNames) {
+        flag ? attachShm(bufferName) : detachShm(bufferName);
     }
     shmSave = flag;
 }
@@ -179,10 +215,12 @@ void QBufferedFileWriter::flush(const QString &bufferName) {
     {  // write to file
         QReadLocker locker(locks[bufferName]);
         if (buffers[bufferName]->buffer().isEmpty()) return;
-        if (singleFileMode)
-            singleFile->write(buffers[bufferName]->data());
-        else
-            files[bufferName]->write(buffers[bufferName]->data());
+        if (fileSave) {
+            if (singleFileMode)
+                singleFile->write(buffers[bufferName]->data());
+            else
+                files[bufferName]->write(buffers[bufferName]->data());
+        }
         // write to shared memory
         if (shmSave) {
             sharedMemory[bufferName]->lock();
@@ -205,6 +243,7 @@ void QBufferedFileWriter::flush(const QString &bufferName) {
 
 void QBufferedFileWriter::start(bool flagClear) {
     qDebug() << "QBufferedFileWriter::start()";
+    if (fileSave) openFile();
     if (flagClear) clear();
     writeThread->start();
 }
@@ -213,4 +252,5 @@ void QBufferedFileWriter::stop() {
     qDebug() << "QBufferedFileWriter::stop()";
     writeThread->stop();
     writeThread->wait();
+    if (fileSave) closeFile();
 }

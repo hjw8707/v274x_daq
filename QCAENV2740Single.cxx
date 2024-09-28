@@ -47,9 +47,7 @@ void DataAcquisitionThread::run() {
 
         switch (ret) {
             case CAEN_FELib_Success:
-                // emit dataAcquired(data, size);
-                if (fout) fout->write(reinterpret_cast<char *>(data), size);
-                if (shm) shm->writeData(data, size);
+                writer->write("v274x", reinterpret_cast<char *>(data), size);
                 nbunch++;
                 break;
             case CAEN_FELib_Timeout:
@@ -83,14 +81,16 @@ void DataAcquisitionThread::run() {
 // QCAENV2740
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 QCAENV2740Single::QCAENV2740Single(QWidget *parent) : verbose(false), currentStatus(-1), QMainWindow(parent) {
+    qDebug() << "QCAENV2740Single constructor";
     setWindowTitle("V274X DAQ");
     setWindowIcon(QIcon("icons/dig_v2740.png"));
 
     timer = new QTimer(this);
     verbose = true;
+    writer = QBufferedFileWriter::getInstance();
+    writer->setShmSave(true);
+    writer->addBuffer("v274x");
 
-    // shm = nullptr;
-    shm = new SharedMemory("/v2740");
     //  CAENV2740 초기화
     initDAQ();
     // GUI 초기화
@@ -98,6 +98,7 @@ QCAENV2740Single::QCAENV2740Single(QWidget *parent) : verbose(false), currentSta
 }
 
 QCAENV2740Single::~QCAENV2740Single() {
+    qDebug() << "QCAENV2740Single destructor";
     // 자원 해제 코드
     if (daq) {
         delete daq;
@@ -111,13 +112,10 @@ QCAENV2740Single::~QCAENV2740Single() {
         delete timer;
         timer = nullptr;
     }
-    if (shm) {
-        delete shm;
-        shm = nullptr;
-    }
 }
 
 void QCAENV2740Single::initUI() {
+    qDebug() << "QCAENV2740Single initUI";
     // GUI 구성 요소 설정
     resize(800, 600);
     QWidget *centralWidget = new QWidget(this);
@@ -341,6 +339,7 @@ void QCAENV2740Single::initUI() {
 }
 
 void QCAENV2740Single::initDAQ() {
+    qDebug() << "QCAENV2740Single initDAQ";
     daq = new CAENV2740();
     daq->setVerbose(verbose);
 
@@ -350,6 +349,7 @@ void QCAENV2740Single::initDAQ() {
 }
 
 void QCAENV2740Single::connectDAQ() {
+    qDebug() << "QCAENV2740Single connectDAQ";
     if (verbose) std::cout << "connectDAQ" << std::endl;
     if (verbose) std::cout << "currentStatus: " << currentStatus << std::endl;
     if (currentStatus != 0) return;  // 현재 상태가 0(Disconnected)이 아니면 실행하지 않음
@@ -362,13 +362,23 @@ void QCAENV2740Single::connectDAQ() {
     setStatus(1);
 }
 
-void QCAENV2740Single::clearDAQ() { daq->clear(); }
+void QCAENV2740Single::clearDAQ() {
+    qDebug() << "QCAENV2740Single clearDAQ";
+    daq->clear();
+}
 
-void QCAENV2740Single::resetDAQ() { daq->reset(); }
+void QCAENV2740Single::resetDAQ() {
+    qDebug() << "QCAENV2740Single resetDAQ";
+    daq->reset();
+}
 
-void QCAENV2740Single::rebootDAQ() { daq->reboot(); }
+void QCAENV2740Single::rebootDAQ() {
+    qDebug() << "QCAENV2740Single rebootDAQ";
+    daq->reboot();
+}
 
 void QCAENV2740Single::disconnectDAQ() {
+    qDebug() << "QCAENV2740Single disconnectDAQ";
     if (verbose) std::cout << "disconnectDAQ" << std::endl;
     if (verbose) std::cout << "currentStatus: " << currentStatus << std::endl;
     daq->close();
@@ -376,6 +386,7 @@ void QCAENV2740Single::disconnectDAQ() {
 }
 
 void QCAENV2740Single::exitDAQ() {
+    qDebug() << "QCAENV2740Single exitDAQ";
     if (verbose) std::cout << "exitDAQ" << std::endl;
     if (verbose) std::cout << "currentStatus: " << currentStatus << std::endl;
     if (currentStatus != 0) daq->close();
@@ -498,18 +509,13 @@ void QCAENV2740Single::runDAQ() {
         filenameLabel->setText("Not saving to file");
     } else {
         filenameLabel->setText("Saving to file: " + QFileInfo(QString::fromStdString(fileName)).absoluteFilePath());
-        fout.open(fileName, std::ios::binary);
+        // fout.open(fileName, std::ios::binary);
     }
     fileSizeLabel->setText("File Size: - kBytes");
+    writer->setFileSave(!nosave);
 
     // 측정 시간이 0보다 큰 경우 QTimer 설정
     if (measurementTimeSpinBox->value() > 0) connect(timer, &QTimer::timeout, this, &QCAENV2740Single::stopDAQ);
-
-    if (nosave)
-        thread->setFout(nullptr);
-    else
-        thread->setFout(&fout);
-    if (shm) thread->setShm(shm);
 
     daq->clear();
     daq->armAcquisition();
@@ -534,8 +540,7 @@ void QCAENV2740Single::stopDAQ() {
     bytesPerSecondLabel->setText("0 Bytes/s");
     bpsProgressBar->setValue(0);
 
-    fileSizeLabel->setText(QString("File Size: %1 kBytes").arg(fout.tellp() / 1024));
-    fout.close();
+    // fileSizeLabel->setText(QString("File Size: %1 kBytes").arg(fout.tellp() / 1024));
 
     setStatus(1);
 

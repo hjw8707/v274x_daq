@@ -24,7 +24,7 @@ make
 ## Programs
 
 - `daq`: CUI-based DAQ program for the CAEN V2740/V2745.
-- `v274x_daq`: GUI-based DAQ program for the CAEN V2740/V2745.
+- `v274xm_daq`: GUI-based DAQ program for the CAEN V2740/V2745.
 - `raw2root`: Read the raw data from the CAEN V2740/V2745 and convert it to a ROOT file.
 
 ### daq
@@ -42,16 +42,16 @@ make
   - `-o <file name>`: Specify the output file name.
   - `<V2740_IP>`: Specify the IP address of the V2740 module.
 
-### v274x_daq
+### v274xm_daq
 
 - Run the code
 
 ```bash
-./v274x_daq -a <IP_ADDRESS>
+./v274xm_daq -c <IP_ADDRESS1>,<IP_ADDRESS2>,<IP_ADDRESS3>
 ```
 
 - Option Descriptions
-  - `-a <IP_ADDRESS>`: Specify the IP address of the DAQ device.
+  - `-c <IP_ADDRESS1>,<IP_ADDRESS2>,<IP_ADDRESS3>`: Specify the IP addresses of the DAQ devices.
 
 ### raw2root
 

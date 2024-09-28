@@ -40,6 +40,8 @@ QCAENV274XMulti::QCAENV274XMulti(QWidget *parent)
     elapsedTimer = new QElapsedTimer();
 
     writer = QBufferedFileWriter::getInstance();
+    writer->setShmSave(true);
+
     nosave = false;
 
     // GUI 초기화
@@ -87,7 +89,8 @@ void QCAENV274XMulti::initUI() {
     connectLayout->addWidget(connectButton);
     connectLayout->addWidget(exitButton);
 
-    connect(connectButton, &QPushButton::clicked, this, &QCAENV274XMulti::addDigitizer);
+    connect(connectButton, &QPushButton::clicked, this,
+            [this]() { addDigitizer(boardLineEdit->text(), ipLineEdit->text()); });
     connect(exitButton, &QPushButton::clicked, this, &QCAENV274XMulti::close);
     //////////////////////////////////////////////////////////////
 
@@ -225,16 +228,17 @@ void QCAENV274XMulti::run() {
         }
     }
 
-    if (nosave) {
+    if (nosave)
         filenameLabel->setText("Not saving to file");
-    } else {
+    else
         filenameLabel->setText("Saving to file: " + QFileInfo(fileName).absoluteFilePath());
-    }
+    writer->setFileSave(!nosave);
+
     fileSizeLabel->setText("File Size: - kBytes");
 
     for (QCAENV2740 *digitizer : digitizers) {
         writer->setFileName(digitizer->getBoardName(), fileName + QString("_%1").arg(digitizer->getBoardName()));
-        digitizer->readyDAQ(fileName, nosave);
+        digitizer->readyDAQ();
     }
     writer->start();
     for (QCAENV2740 *digitizer : digitizers) digitizer->runDAQ();
@@ -267,11 +271,12 @@ void QCAENV274XMulti::stop() {
     writer->stop();
 }
 
-void QCAENV274XMulti::addDigitizer() {
+void QCAENV274XMulti::addDigitizer(const QString &name, const QString &ip) {
     qDebug() << "QCAENV274XMulti::addDigitizer()";
-    QString newBoardName = boardLineEdit->text();
+    QString newBoardName = name;
+    if (newBoardName.isEmpty()) newBoardName = QString("dig%1").arg(numOfDigitizers, 2, 10, QChar('0'));
 
-    QString newIp = ipLineEdit->text();
+    QString newIp = ip;
     for (QCAENV2740 *digitizer : digitizers) {
         if (digitizer->getIPAddress() == newIp.toStdString()) {
             QMessageBox::information(this, "Duplicate IP", "이미 같은 IP를 가진 디지타이저가 있습니다.");
@@ -281,9 +286,9 @@ void QCAENV274XMulti::addDigitizer() {
     qDebug() << "Add Digitizer with newIp: " << newIp << ", newBoardName: " << newBoardName;
 
     QString connectStr = "dig2://" + newIp;
-    if (CAENV2740::available(connectStr.toStdString())) {
-        digitizers.append(
-            new QCAENV2740(ipLineEdit->text().toStdString().c_str(), numOfDigitizers, newBoardName, this));
+    // if (CAENV2740::available(connectStr.toStdString())) {
+    if (true) {
+        digitizers.append(new QCAENV2740(newIp, numOfDigitizers, newBoardName, this));
         digitizerTabWidget->addTab(digitizers.last(), QString("Digitizer %1").arg(numOfDigitizers));
         numOfDigitizers++;
         connect(digitizers.last(), &QCAENV2740::removeDigitizer, this, &QCAENV274XMulti::removeDigitizer);

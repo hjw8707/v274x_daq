@@ -37,9 +37,8 @@ class QCAENV274XMulti : public QMainWindow {
     QCAENV274XMulti(QWidget *parent = nullptr);
     virtual ~QCAENV274XMulti();  // 가상 소멸자 추가
 
-    void addDigitizer();
-
    public slots:
+    void addDigitizer(const QString &name, const QString &ip);  // default name = digXX
     void removeDigitizer(QCAENV2740 *digitizer);
     void updateDigitizerLabel();
     void updateBoardBps(int board, float bps);
