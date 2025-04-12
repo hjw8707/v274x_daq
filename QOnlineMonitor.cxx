@@ -1,5 +1,7 @@
 #include "QOnlineMonitor.hxx"
 
+#include <QtCore/QDebug>
+
 QOnlineMonitor::QOnlineMonitor(QObject* parent) : QObject(parent) {
     qDebug() << "QOnlineMonitor constructor";
     httpServer = new THttpServer("http:8080");
