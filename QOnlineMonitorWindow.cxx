@@ -6,6 +6,7 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QVBoxLayout>
+#include <QDebug>
 
 QOnlineMonitorWindow::QOnlineMonitorWindow(QWidget* parent) : QMainWindow(parent) {
     qDebug() << "QOnlineMonitorWindow::QOnlineMonitorWindow()";

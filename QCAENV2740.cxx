@@ -78,10 +78,9 @@ void DataAcquisitionThreadSingle::run() {
 // QCAENV2740
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 QCAENV2740::QCAENV2740(QString _ipAddress, int _boardNumber, QString _boardName, QWidget *parent)
-    : currentStatus(-1), boardNumber(_boardNumber), boardName(_boardName), QWidget(parent) {
+  : currentStatus(-1), ipAddress(_ipAddress), boardNumber(_boardNumber), boardName(_boardName), QWidget(parent) {
     qDebug() << "QCAENV2740 constructor with IP: " << ipAddress << " boardNumber: " << boardNumber
              << " boardName: " << boardName;
-    ipAddress = _ipAddress;
 
     if (boardName.isEmpty()) boardName = QString("dig%1").arg(boardNumber, 2, 10, QChar('0'));
 
@@ -235,7 +234,7 @@ void QCAENV2740::initUI() {
     triggerSettingsLayout->addWidget(globalTrigSourceLabel);
     triggerSettingsLayout->addWidget(globalTrigSourceComboBox);
 
-    connect(applySettingsCheckBox, &QCheckBox::checkStateChanged, this, [this](Qt::CheckState state) {
+    connect(applySettingsCheckBox, &QCheckBox::stateChanged, this, [this](int state) {
         bool isChecked = state == Qt::Checked;
         digitizerCHEnableGroupBox->setEnabled(isChecked);
         triggerSettingsGroupBox->setEnabled(isChecked);
@@ -253,9 +252,9 @@ void QCAENV2740::initDAQ() {
     daq = new CAENV2740();
     daq->setVerbose(true);
 
-    // connectDAQ();
-    //  model = QString::fromStdString(daq->readModelName());
-    model = "V2740";
+    connectDAQ();
+    model = QString::fromStdString(daq->readModelName());
+    //model = "V2740";
     par = new CAENV2740Par();
 
     thread = new DataAcquisitionThreadSingle(daq, boardNumber, boardName);

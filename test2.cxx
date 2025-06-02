@@ -3,8 +3,8 @@
 #include <thread>
 
 #include "QOnlineMonitor.hxx"
-#include "QtWidgets/QApplication.h"
-#include "QtWidgets/QMessageBox.h"
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QMessageBox>
 #include "TApplication.h"
 #include "TROOT.h"
 #include "TSystem.h"

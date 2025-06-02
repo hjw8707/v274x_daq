@@ -2,10 +2,10 @@
 #include <stdio.h>
 
 #include "QCAENV274XMulti.hxx"  // QCAENV2740 헤더 파일 포함
-#include "QtCore/QCommandLineOption.h"
-#include "QtCore/QCommandLineParser.h"
-#include "QtCore/QString.h"
-#include "QtWidgets/QApplication.h"
+#include <QtCore/QCommandLineOption>
+#include <QtCore/QCommandLineParser>
+#include <QtCore/QString>
+#include <QtWidgets/QApplication>
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);  // QApplication 객체 생성
@@ -21,7 +21,12 @@ int main(int argc, char *argv[]) {
 
     parser.process(app);
 
+    #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     QStringList ipAddresses = parser.value(ipOption).split(',', Qt::SkipEmptyParts);
+#else
+    QStringList ipAddresses = parser.value(ipOption).split(',', QString::SkipEmptyParts);
+#endif
+    //    QStringList ipAddresses = parser.value(ipOption).split(',', QString::SkipEmptyParts);
     for (const QString &ip : ipAddresses) {
         qDebug() << "IP Address:" << ip;
     }

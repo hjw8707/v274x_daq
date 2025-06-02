@@ -2,10 +2,12 @@
 #include <stdio.h>
 
 #include "QOnlineMonitorWindow.hxx"  // QCAENV2740 헤더 파일 포함
-#include "QtCore/QCommandLineOption.h"
-#include "QtCore/QCommandLineParser.h"
-#include "QtCore/QString.h"
-#include "QtWidgets/QApplication.h"
+#include <QtCore/QCommandLineOption>
+#include <QtCore/QCommandLineParser>
+#include <QtCore/QString>
+#include <QtWidgets/QApplication>
+#include <QDebug>
+
 #include "TApplication.h"
 #include "TROOT.h"
 int main(int argc, char *argv[]) {
@@ -28,7 +30,12 @@ int main(int argc, char *argv[]) {
 
     QStringList shmNames;
     if (parser.isSet(shmOption)) {
-        shmNames = parser.value(shmOption).split(',', Qt::SkipEmptyParts);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+      shmNames = parser.value(shmOption).split(',', Qt::SkipEmptyParts);
+#else
+      shmNames = parser.value(shmOption).split(',', QString::SkipEmptyParts);
+#endif
+    //        shmNames = parser.value(shmOption).split(',', QString::SkipEmptyParts);
     }
     for (const QString &shm : shmNames) {
         qDebug() << "Shared Memory Name:" << shm;

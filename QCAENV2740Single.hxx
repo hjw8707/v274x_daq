@@ -24,7 +24,7 @@
 #include "QtWidgets/QTreeWidget"
 #include "QtWidgets/QVBoxLayout"
 #include "QtWidgets/QWidget"
-
+#include "QDebug"
 /**
  * @brief This class is the DataAcquisitionThread class.
  * @details It is responsible for acquiring and processing data in a separate thread.

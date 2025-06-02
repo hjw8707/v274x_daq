@@ -14,11 +14,11 @@ set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR})
 # 옵션을 통해 번들 앱 여부를 설정
 option(BUNDLE_APP "Build as a macOS bundle app" OFF)
 
-# Qt6, yaml-cpp, ROOT 라이브러리 찾기
+# Qt5, yaml-cpp, ROOT 라이브러리 찾기
 find_package(ryml REQUIRED)
 find_package(c4core REQUIRED)
-find_package(ROOT REQUIRED COMPONENTS Hist RIO RHttp)
-find_package(Qt6 COMPONENTS Core Gui Widgets Charts REQUIRED)
+find_package(ROOT REQUIRED COMPONENTS Hist RIO RHTTP)
+find_package(Qt5 COMPONENTS Core Gui Widgets Charts REQUIRED)
 
 # 라이브러리 디렉토리 추가
 # (라이브러리 디렉토리를 프로젝트의 라이브러리 경로로 수정)
@@ -54,7 +54,7 @@ set_target_properties(v2740 PROPERTIES
 target_include_directories(v2740 PUBLIC ${ROOT_INCLUDE_DIRS} /usr/local/include /opt/homebrew/include)
 
 # v2740 라이브러리 링크
-target_link_libraries(v2740 PRIVATE ${ROOT_LIBRARIES} ${CAEN_FELib_PATH} ryml c4core Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Charts)
+target_link_libraries(v2740 PRIVATE ${ROOT_LIBRARIES} ${CAEN_FELib_PATH} ryml c4core Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Charts)
 
 # v2740 라이브러리 설치
 install(TARGETS v2740
@@ -70,7 +70,7 @@ install(TARGETS v2740
 #########################################################################
 # daq.cxx 컴파일 관련 내용 추가
 add_executable(daq daq.cxx)
-target_link_libraries(daq PRIVATE v2740)
+target_link_libraries(daq PRIVATE v2740 pthread)
 
 # daq 실행 파일 설치
 install(TARGETS daq
@@ -107,7 +107,7 @@ if (BUNDLE_APP)
 endif()
 
 # 라이브러리 링크 시 @rpath 사용
-target_link_libraries(v274x_daq PRIVATE v2740 Qt6::Widgets ${ROOT_LIBRARIES})
+target_link_libraries(v274x_daq PRIVATE v2740 Qt5::Widgets ${ROOT_LIBRARIES})
 
 # v274x_daq 실행 파일 설치
 install(TARGETS v274x_daq
@@ -121,7 +121,7 @@ install(TARGETS v274x_daq
 #########################################################################
 # v274xm_daq.cxx 컴파일 관련 내용 추가
 add_executable(v274xm_daq v274xm_daq.cxx)
-target_link_libraries(v274xm_daq PRIVATE v2740 Qt6::Widgets ${ROOT_LIBRARIES})
+target_link_libraries(v274xm_daq PRIVATE v2740 Qt5::Widgets ${ROOT_LIBRARIES})
 
 # v274xm_daq 실행 파일 설치
 install(TARGETS v274xm_daq
@@ -149,7 +149,7 @@ install(TARGETS raw2root
 # v274xm_mon 컴파일 관련 내용 추가
 add_executable(v274xm_mon v274xm_mon.cxx)
 target_include_directories(v274xm_mon PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(v274xm_mon PRIVATE v2740 ${ROOT_LIBRARIES} Qt6::Core Qt6::Widgets Qt6::Charts)
+target_link_libraries(v274xm_mon PRIVATE v2740 ${ROOT_LIBRARIES} Qt5::Core Qt5::Widgets Qt5::Charts pthread)
 
 # v274xm_mon 실행 파일 설치
 install(TARGETS v274xm_mon
@@ -163,11 +163,11 @@ install(TARGETS v274xm_mon
 # test 컴파일 관련 내용 추가
 add_executable(test test.cxx)
 target_include_directories(test PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(test PRIVATE v2740 ${ROOT_LIBRARIES} Qt6::Core Qt6::Widgets)
+target_link_libraries(test PRIVATE v2740 ${ROOT_LIBRARIES} Qt5::Core Qt5::Widgets pthread)
 
 add_executable(test2 test2.cxx)
 target_include_directories(test2 PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(test2 PRIVATE v2740 ${ROOT_LIBRARIES} Qt6::Core Qt6::Widgets)
+target_link_libraries(test2 PRIVATE v2740 ${ROOT_LIBRARIES} Qt5::Core Qt5::Widgets pthread)
 
 
 # 옵션으로 디버깅 정보 생성
