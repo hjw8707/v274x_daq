@@ -1,26 +1,26 @@
 #include "QCAENV2740Single.hxx"
 
-#include "QtCore/QObject"
-#include "QtCore/QThread"
-#include "QtCore/QTimer"
-#include "QtGui/QIcon"
-#include "QtWidgets/QApplication"
-#include "QtWidgets/QCheckBox"
-#include "QtWidgets/QFileDialog"
-#include "QtWidgets/QGroupBox"
-#include "QtWidgets/QHBoxLayout"
-#include "QtWidgets/QLabel"
-#include "QtWidgets/QLineEdit"
-#include "QtWidgets/QMainWindow"
-#include "QtWidgets/QMessageBox"
-#include "QtWidgets/QProgressBar"
-#include "QtWidgets/QPushButton"
-#include "QtWidgets/QSpinBox"
-#include "QtWidgets/QStyle"
-#include "QtWidgets/QTreeWidget"
-#include "QtWidgets/QTreeWidgetItem"
-#include "QtWidgets/QVBoxLayout"
-#include "QtWidgets/QWidget"
+#include <QtCore/QObject>
+#include <QtCore/QThread>
+#include <QtCore/QTimer>
+#include <QtGui/QIcon>
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QCheckBox>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QGroupBox>
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QLineEdit>
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QProgressBar>
+#include <QtWidgets/QPushButton>
+#include <QtWidgets/QSpinBox>
+#include <QtWidgets/QStyle>
+#include <QtWidgets/QTreeWidget>
+#include <QtWidgets/QTreeWidgetItem>
+#include <QtWidgets/QVBoxLayout>
+#include <QtWidgets/QWidget>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // DataAcquisitionThread
@@ -64,16 +64,16 @@ void DataAcquisitionThread::run() {
         totalBytes += size;  // 전송된 바이트 수 누적
         // 초당 전송된 바이트 수 업데이트
         if (timer.elapsed() >= 1000) {
-            totalTime += timer.elapsed();                                     // 1초마다
-            emit updateBytesPerSecond(totalBytes * 1000. / timer.elapsed());  // 시그널 전송
-            emit updateMeasurementTime(totalTime);                            // 측정 시간 업데이트
+            totalTime += timer.elapsed();                                       // 1초마다
+            Q_EMIT updateBytesPerSecond(totalBytes * 1000. / timer.elapsed());  // 시그널 전송
+            Q_EMIT updateMeasurementTime(totalTime);                            // 측정 시간 업데이트
             totalBytes = 0;   // 카운터 초기화                                  // 측정 시간 업데이트
             timer.restart();  // 타이머 재시작
         }
     }
     totalTime += timer.elapsed();
-    emit updateMeasurementTime(totalTime);
-    emit updateBytesPerSecond(0.0);
+    Q_EMIT updateMeasurementTime(totalTime);
+    Q_EMIT updateBytesPerSecond(0.0);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -601,7 +601,7 @@ void QCAENV2740Single::setStatus(int status) {
             break;
     }
     if (verbose) std::cout << "statusText: " << statusText.toStdString() << std::endl;
-    emit statusUpdated(statusText);  // 상태가 변경될 때 시그널 발송
+    Q_EMIT statusUpdated(statusText);  // 상태가 변경될 때 시그널 발송
 }
 
 void QCAENV2740Single::applySettings() {

@@ -18,7 +18,19 @@ option(BUNDLE_APP "Build as a macOS bundle app" OFF)
 find_package(ryml REQUIRED)
 find_package(c4core REQUIRED)
 find_package(ROOT REQUIRED COMPONENTS Hist RIO RHttp)
-find_package(Qt6 COMPONENTS Core Gui Widgets Charts REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Widgets Charts)
+if (Qt6_FOUND)
+    message(STATUS "Qt6 found")
+    set(QT_LIBRARIES Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Charts)
+else()
+    find_package(Qt5 COMPONENTS Core Gui Widgets Charts)
+    if (Qt5_FOUND)
+        message(STATUS "Qt5 found")
+        set(QT_LIBRARIES Qt5::Core Qt5::Gui Qt5::Widgets Qt5::Charts)
+    else()
+        message(FATAL_ERROR "Qt6 or Qt5 not found")
+    endif()
+endif()
 
 # 라이브러리 디렉토리 추가
 # (라이브러리 디렉토리를 프로젝트의 라이브러리 경로로 수정)
@@ -107,7 +119,7 @@ if (BUNDLE_APP)
 endif()
 
 # 라이브러리 링크 시 @rpath 사용
-target_link_libraries(v274x_daq PRIVATE v2740 Qt6::Widgets ${ROOT_LIBRARIES})
+target_link_libraries(v274x_daq PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
 
 # v274x_daq 실행 파일 설치
 install(TARGETS v274x_daq
@@ -121,7 +133,7 @@ install(TARGETS v274x_daq
 #########################################################################
 # v274xm_daq.cxx 컴파일 관련 내용 추가
 add_executable(v274xm_daq v274xm_daq.cxx)
-target_link_libraries(v274xm_daq PRIVATE v2740 Qt6::Widgets ${ROOT_LIBRARIES})
+target_link_libraries(v274xm_daq PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
 
 # v274xm_daq 실행 파일 설치
 install(TARGETS v274xm_daq
@@ -149,7 +161,7 @@ install(TARGETS raw2root
 # v274xm_mon 컴파일 관련 내용 추가
 add_executable(v274xm_mon v274xm_mon.cxx)
 target_include_directories(v274xm_mon PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(v274xm_mon PRIVATE v2740 ${ROOT_LIBRARIES} Qt6::Core Qt6::Widgets Qt6::Charts)
+target_link_libraries(v274xm_mon PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
 
 # v274xm_mon 실행 파일 설치
 install(TARGETS v274xm_mon
@@ -163,11 +175,11 @@ install(TARGETS v274xm_mon
 # test 컴파일 관련 내용 추가
 add_executable(test test.cxx)
 target_include_directories(test PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(test PRIVATE v2740 ${ROOT_LIBRARIES} Qt6::Core Qt6::Widgets)
+target_link_libraries(test PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
 
 add_executable(test2 test2.cxx)
 target_include_directories(test2 PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(test2 PRIVATE v2740 ${ROOT_LIBRARIES} Qt6::Core Qt6::Widgets)
+target_link_libraries(test2 PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
 
 
 # 옵션으로 디버깅 정보 생성

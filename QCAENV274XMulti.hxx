@@ -1,30 +1,31 @@
 #ifndef QCAENV274XMULTI_H
 #define QCAENV274XMULTI_H
 
+#include <QDebug>
+#include <QtCore/QElapsedTimer>
+#include <QtCore/QThread>
+#include <QtCore/QTimer>
+#include <QtGui/QStandardItem>
+#include <QtGui/QStandardItemModel>
+#include <QtWidgets/QCheckBox>
+#include <QtWidgets/QComboBox>
+#include <QtWidgets/QGroupBox>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QLineEdit>
+#include <QtWidgets/QListView>
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QProgressBar>
+#include <QtWidgets/QPushButton>
+#include <QtWidgets/QSpinBox>
+#include <QtWidgets/QTreeWidget>
+#include <QtWidgets/QVBoxLayout>
+#include <QtWidgets/QWidget>
 #include <fstream>
 
 #include "CAENV2740.hxx"  // CAENV2740 클래스 포함
 #include "CAENV2740Par.hxx"
 #include "QBufferedFileWriter.hxx"
 #include "QCAENV2740.hxx"
-#include "QtCore/QElapsedTimer"
-#include "QtCore/QThread"
-#include "QtCore/QTimer"
-#include "QtGui/QStandardItem"
-#include "QtGui/QStandardItemModel"
-#include "QtWidgets/QCheckBox"
-#include "QtWidgets/QComboBox"
-#include "QtWidgets/QGroupBox"
-#include "QtWidgets/QLabel"
-#include "QtWidgets/QLineEdit"
-#include "QtWidgets/QListView"
-#include "QtWidgets/QMainWindow"
-#include "QtWidgets/QProgressBar"
-#include "QtWidgets/QPushButton"
-#include "QtWidgets/QSpinBox"
-#include "QtWidgets/QTreeWidget"
-#include "QtWidgets/QVBoxLayout"
-#include "QtWidgets/QWidget"
 
 /**
  * @brief This class is the QCAENV274XMulti class.

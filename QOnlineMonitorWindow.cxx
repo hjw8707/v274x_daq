@@ -1,5 +1,6 @@
 #include "QOnlineMonitorWindow.hxx"
 
+#include <QDebug>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>

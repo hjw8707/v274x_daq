@@ -1,6 +1,6 @@
 #include "QBufferedFileWriter.hxx"
 
-#include <QtCore/QDebug>
+#include <QDebug>
 
 ////////////////////////////////////////////////////////////
 // WriteThread

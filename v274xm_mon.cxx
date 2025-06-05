@@ -1,13 +1,16 @@
 // main.c
+#include <TApplication.h>
+#include <TROOT.h>
 #include <stdio.h>
 
+#include <QtCore/QCommandLineOption>
+#include <QtCore/QCommandLineParser>
+#include <QtCore/QCoreApplication>
+#include <QtCore/QString>
+#include <QtWidgets/QApplication>
+
 #include "QOnlineMonitorWindow.hxx"  // QCAENV2740 헤더 파일 포함
-#include "QtCore/QCommandLineOption.h"
-#include "QtCore/QCommandLineParser.h"
-#include "QtCore/QString.h"
-#include "QtWidgets/QApplication.h"
-#include "TApplication.h"
-#include "TROOT.h"
+
 int main(int argc, char *argv[]) {
     gROOT->SetBatch(true);
     QApplication app(argc, argv);  // QApplication 객체 생성
@@ -28,7 +31,11 @@ int main(int argc, char *argv[]) {
 
     QStringList shmNames;
     if (parser.isSet(shmOption)) {
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
         shmNames = parser.value(shmOption).split(',', Qt::SkipEmptyParts);
+#else
+        shmNames = parser.value(shmOption).split(',', QString::SkipEmptyParts);
+#endif
     }
     for (const QString &shm : shmNames) {
         qDebug() << "Shared Memory Name:" << shm;

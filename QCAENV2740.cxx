@@ -1,27 +1,27 @@
 #include "QCAENV2740.hxx"
 
-#include "QCloseEvent"
-#include "QtCore/QObject"
-#include "QtCore/QThread"
-#include "QtCore/QTimer"
-#include "QtGui/QIcon"
-#include "QtWidgets/QApplication"
-#include "QtWidgets/QCheckBox"
-#include "QtWidgets/QFileDialog"
-#include "QtWidgets/QGroupBox"
-#include "QtWidgets/QHBoxLayout"
-#include "QtWidgets/QLabel"
-#include "QtWidgets/QLineEdit"
-#include "QtWidgets/QMainWindow"
-#include "QtWidgets/QMessageBox"
-#include "QtWidgets/QProgressBar"
-#include "QtWidgets/QPushButton"
-#include "QtWidgets/QSpinBox"
-#include "QtWidgets/QStyle"
-#include "QtWidgets/QTreeWidget"
-#include "QtWidgets/QTreeWidgetItem"
-#include "QtWidgets/QVBoxLayout"
-#include "QtWidgets/QWidget"
+#include <QCloseEvent>
+#include <QtCore/QObject>
+#include <QtCore/QThread>
+#include <QtCore/QTimer>
+#include <QtGui/QIcon>
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QCheckBox>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QGroupBox>
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QLineEdit>
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QProgressBar>
+#include <QtWidgets/QPushButton>
+#include <QtWidgets/QSpinBox>
+#include <QtWidgets/QStyle>
+#include <QtWidgets/QTreeWidget>
+#include <QtWidgets/QTreeWidgetItem>
+#include <QtWidgets/QVBoxLayout>
+#include <QtWidgets/QWidget>
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // DataAcquisitionThread
 //
@@ -62,7 +62,7 @@ void DataAcquisitionThreadSingle::run() {
         }
         if (timer.elapsed() >= 1000) {
             totalTime += timer.elapsed();  // 1초마다
-            emit updateBoardBps(
+            Q_EMIT updateBoardBps(
                 boardNumber,
                 totalBytes * 1000. / timer.elapsed());  // 시그널 전송                      // 측정 시간 업데이트
             totalBytes = 0;   // 카운터 초기화                                  // 측정 시간 업데이트
@@ -70,7 +70,7 @@ void DataAcquisitionThreadSingle::run() {
         }
         totalBytes += size;  // 전송된 바이트 수 누적
     }
-    emit updateBoardTotalBytes(boardNumber, writer->getFileSize(boardName));
+    Q_EMIT updateBoardTotalBytes(boardNumber, writer->getFileSize(boardName));
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -294,7 +294,7 @@ void QCAENV2740::disconnectDAQ() {
     // daq->close();
     setStatus(0);
 
-    emit removeDigitizer(this);
+    Q_EMIT removeDigitizer(this);
 }
 
 void QCAENV2740::closeEvent(QCloseEvent *event) {

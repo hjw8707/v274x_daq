@@ -1,6 +1,6 @@
 #include "QOnlineMonitor.hxx"
 
-#include <QtCore/QDebug>
+#include <QDebug>
 
 QOnlineMonitor::QOnlineMonitor(QObject* parent) : QObject(parent) {
     qDebug() << "QOnlineMonitor constructor";
