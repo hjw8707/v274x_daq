@@ -44,3 +44,20 @@ secrets.json
 # 인스톨 디렉토리
 bin/
 lib/
+
+# 실행 파일
+daq
+raw2root
+test
+test2
+v274x_daq
+v274xm_daq
+v274xm_mon
+
+# qt 관련
+.qt/
+v2740_autogen/
+
+# 데이터 파일
+*.dat
+*.root
