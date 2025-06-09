@@ -34,6 +34,7 @@ Thumbs.db
 # 의존성 디렉토리
 /vendor/
 /node_modules/
+rapidyaml/
 
 # 환경 설정 파일
 .env

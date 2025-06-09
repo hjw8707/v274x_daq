@@ -8,6 +8,7 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QString>
 #include <QtWidgets/QApplication>
+#include <QDebug>
 
 #include "QOnlineMonitorWindow.hxx"  // QCAENV2740 헤더 파일 포함
 

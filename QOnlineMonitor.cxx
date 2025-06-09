@@ -1,5 +1,6 @@
 #include "QOnlineMonitor.hxx"
 
+#include <iomanip>
 #include <QDebug>
 
 QOnlineMonitor::QOnlineMonitor(QObject* parent) : QObject(parent) {

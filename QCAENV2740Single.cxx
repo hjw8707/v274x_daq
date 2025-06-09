@@ -288,7 +288,11 @@ void QCAENV2740Single::initUI() {
     triggerSettingsLayout->addWidget(globalTrigSourceLabel);
     triggerSettingsLayout->addWidget(globalTrigSourceComboBox);
 
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     connect(applySettingsCheckBox, &QCheckBox::checkStateChanged, this, [this](Qt::CheckState state) {
+#else
+    connect(applySettingsCheckBox, &QCheckBox::stateChanged, this, [this](int state) {
+#endif
         bool isChecked = state == Qt::Checked;
         digitizerCHEnableGroupBox->setEnabled(isChecked);
         triggerSettingsGroupBox->setEnabled(isChecked);
