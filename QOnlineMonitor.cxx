@@ -262,7 +262,7 @@ void QOnlineMonitor::run() {
         for (auto& shm : sharedMemory) {
             if (shm->isAttached()) {
                 uint64_t size = getSharedMemorySize(shm->key());
-                histograms[shm->key()][0]->Fill(100);
+                // histograms[shm->key()][0]->Fill(100); // test
                 if (size > 0) {
                     uint64_t* data = getSharedMemoryData(shm->key(), size);
                     parseData(data, size);

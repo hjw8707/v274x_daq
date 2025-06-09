@@ -12,6 +12,7 @@ CMakeFiles/
 CMakeCache.txt
 cmake_install.cmake
 Makefile
+install_manifest.txt
 
 # IDE 및 편집기 관련 파일
 .vscode/
@@ -59,5 +60,5 @@ v274xm_mon
 v2740_autogen/
 
 # 데이터 파일
-*.dat
+*.dat*
 *.root

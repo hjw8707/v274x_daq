@@ -79,9 +79,10 @@ void DataAcquisitionThreadSingle::run() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 QCAENV2740::QCAENV2740(QString _ipAddress, int _boardNumber, QString _boardName, QWidget *parent)
     : currentStatus(-1), boardNumber(_boardNumber), boardName(_boardName), QWidget(parent) {
+    ipAddress = _ipAddress;
+
     qDebug() << "QCAENV2740 constructor with IP: " << ipAddress << " boardNumber: " << boardNumber
              << " boardName: " << boardName;
-    ipAddress = _ipAddress;
 
     if (boardName.isEmpty()) boardName = QString("dig%1").arg(boardNumber, 2, 10, QChar('0'));
 
@@ -92,7 +93,7 @@ QCAENV2740::QCAENV2740(QString _ipAddress, int _boardNumber, QString _boardName,
 }
 
 QCAENV2740::~QCAENV2740() {
-    qDebug() << "QCAENV2740 destructor";
+    qDebug() << "QCAENV2740(" << boardName << ") destructor";
     // 자원 해제 코드
     if (daq) {
         delete daq;
@@ -105,7 +106,7 @@ QCAENV2740::~QCAENV2740() {
 }
 
 void QCAENV2740::initUI() {
-    qDebug() << "QCAENV2740::initUI()";
+    qDebug() << "QCAENV2740(" << boardName << ")::initUI()";
     // GUI 구성 요소 설정
     resize(800, 600);
     QVBoxLayout *layout = new QVBoxLayout(this);
@@ -248,49 +249,48 @@ void QCAENV2740::initUI() {
 }
 
 void QCAENV2740::initDAQ() {
-    qDebug() << "QCAENV2740::initDAQ()";
+    qDebug() << "QCAENV2740(" << boardName << ")::initDAQ()";
 
     daq = new CAENV2740();
     daq->setVerbose(true);
 
-    // connectDAQ();
-    //  model = QString::fromStdString(daq->readModelName());
-    model = "V2740";
+    connectDAQ();
+    model = QString::fromStdString(daq->readModelName());
     par = new CAENV2740Par();
 
     thread = new DataAcquisitionThreadSingle(daq, boardNumber, boardName);
 }
 
 void QCAENV2740::connectDAQ() {
-    qDebug() << "QCAENV2740::connectDAQ()";
+    qDebug() << "QCAENV2740(" << boardName << ")::connectDAQ()";
     try {
         QString connectStr = "dig2://" + ipAddress;
         daq->connect(connectStr.toStdString());
-        qDebug() << "Connected to DAQ";
+        qDebug() << "QCAENV2740(" << boardName << ")::connectDAQ() - Connected to DAQ";
     } catch (const std::exception &e) {
         QMessageBox::critical(this, "Error", "연결 실패");
-        qDebug() << "Failed to connect to DAQ";
+        qDebug() << "QCAENV2740(" << boardName << ")::connectDAQ() - Failed to connect to DAQ";
         return;
     }
 }
 
 void QCAENV2740::clearDAQ() {
-    qDebug() << "QCAENV2740::clearDAQ()";
+    qDebug() << "QCAENV2740(" << boardName << ")::clearDAQ()";
     daq->clear();
 }
 
 void QCAENV2740::resetDAQ() {
-    qDebug() << "QCAENV2740::resetDAQ()";
+    qDebug() << "QCAENV2740(" << boardName << ")::resetDAQ()";
     daq->reset();
 }
 
 void QCAENV2740::rebootDAQ() {
-    qDebug() << "QCAENV2740::rebootDAQ()";
+    qDebug() << "QCAENV2740(" << boardName << ")::rebootDAQ()";
     daq->reboot();
 }
 
 void QCAENV2740::disconnectDAQ() {
-    qDebug() << "QCAENV2740::disconnectDAQ()";
+    qDebug() << "QCAENV2740(" << boardName << ")::disconnectDAQ()";
     // daq->close();
     setStatus(0);
 
@@ -303,7 +303,7 @@ void QCAENV2740::closeEvent(QCloseEvent *event) {
 }
 
 void QCAENV2740::loadParameter() {
-    qDebug() << "QCAENV2740::loadParameter()";
+    qDebug() << "QCAENV2740(" << boardName << ")::loadParameter()";
     // 파일 다이얼로그를 열어 파일 경로 선택
     QString filePath = QFileDialog::getOpenFileName(this, "Select Parameter File", "",
                                                     "YAML Files (*.yml *.yaml);;JSON Files (*.json)");
@@ -319,7 +319,7 @@ void QCAENV2740::loadParameter() {
 }
 
 void QCAENV2740::viewParameter() {
-    qDebug() << "QCAENV2740::viewParameter()";
+    qDebug() << "QCAENV2740(" << boardName << ")::viewParameter()";
     if (par->getConfig().empty()) {
         QMessageBox::warning(this, "Warning", "No parameter file loaded.");
         return;
@@ -338,7 +338,7 @@ void QCAENV2740::viewParameter() {
 }
 
 void QCAENV2740::loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWidget *treeWidget) {
-    qDebug() << "QCAENV2740::loadYamlToTreeWidget()";
+    qDebug() << "QCAENV2740(" << boardName << ")::loadYamlToTreeWidget()";
     for (const auto &node : rootNode) {
         QTreeWidgetItem *item = new QTreeWidgetItem(
             treeWidget,
@@ -391,12 +391,12 @@ void QCAENV2740::loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWidget *
 }
 
 void QCAENV2740::applyParameter() {
-    qDebug() << "QCAENV2740::applyParameter()";
+    qDebug() << "QCAENV2740(" << boardName << ")::applyParameter()";
     daq->loadParameter(*par);
 }
 
 void QCAENV2740::readyDAQ() {
-    qDebug() << "QCAENV2740::readyDAQ()";
+    qDebug() << "QCAENV2740(" << boardName << ")::readyDAQ()";
     applySettings();
 
     daq->clear();
@@ -404,14 +404,14 @@ void QCAENV2740::readyDAQ() {
 }
 
 void QCAENV2740::runDAQ() {
-    qDebug() << "QCAENV2740::runDAQ()";
+    qDebug() << "QCAENV2740(" << boardName << ")::runDAQ()";
     daq->startAcquisition();
     thread->start();
     setStatus(2);
 }
 
 void QCAENV2740::stopDAQ() {
-    qDebug() << "QCAENV2740::stopDAQ()";
+    qDebug() << "QCAENV2740(" << boardName << ")::stopDAQ()";
     daq->stopAcquisition();
     daq->disarmAcquisition();
     thread->requestInterruption();  // 종료 신호 전송
@@ -422,7 +422,7 @@ void QCAENV2740::stopDAQ() {
 }
 
 void QCAENV2740::setStatus(int status) {
-    qDebug() << "QCAENV2740::setStatus()" << status;
+    qDebug() << "QCAENV2740(" << boardName << ")::setStatus()" << status;
     currentStatus = status;
     QString statusText;
     // 상태에 따라 입력 필드 및 버튼 활성화/비활성화
@@ -466,7 +466,7 @@ void QCAENV2740::setStatus(int status) {
 }
 
 void QCAENV2740::applySettings() {
-    qDebug() << "QCAENV2740::applySettings()";
+    qDebug() << "QCAENV2740(" << boardName << ")::applySettings()";
     if (!applySettingsCheckBox->isChecked()) return;
     for (int i = 0; i < 64; i++) daq->writeChEnable(i, checkBoxes[i]->isChecked());
 }

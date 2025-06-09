@@ -21,10 +21,10 @@ bool CAENV2740::available(const std::string& str) {
     std::cout << "V2740 연결 확인: " << str << std::endl;
     int ret = CAEN_FELib_Open(str.c_str(), &handle);
     if (ret != CAEN_FELib_Success) {
-        std::cout << "V2740 연결 실패" << std::endl;
+        std::cout << "V2740(" << str << ") 연결 실패" << std::endl;
         return false;
     }
-    std::cout << "V2740 연결 성공" << std::endl;
+    std::cout << "V2740(" << str << ") 연결 성공" << std::endl;
     CAEN_FELib_Close(handle);
     return true;
 }
@@ -33,10 +33,10 @@ void CAENV2740::connect(const std::string& str) {
     connectionString = str;
     int ret = CAEN_FELib_Open(connectionString.c_str(), &handle);
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("V2740 연결 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 연결 실패");
     }
     if (verbose) {
-        std::cout << "V2740 연결 성공" << std::endl;
+        std::cout << "V2740(" << connectionString << ") 연결 성공" << std::endl;
         std::cout << "연결 문자열: " << connectionString << std::endl;
     }
 }
@@ -44,25 +44,25 @@ void CAENV2740::connect(const std::string& str) {
 void CAENV2740::reset() {
     int ret = CAEN_FELib_SendCommand(handle, "/cmd/Reset");
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("V2740 리셋 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 리셋 실패");
     }
-    if (verbose) std::cout << "V2740 리셋 성공" << std::endl;
+    if (verbose) std::cout << "V2740(" << connectionString << ") 리셋 성공" << std::endl;
 }
 
 void CAENV2740::reboot() {
     int ret = CAEN_FELib_SendCommand(handle, "/cmd/Reboot");
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("V2740 리부트 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 리부트 실패");
     }
-    if (verbose) std::cout << "V2740 리부트 성공" << std::endl;
+    if (verbose) std::cout << "V2740(" << connectionString << ") 리부트 성공" << std::endl;
 }
 
 void CAENV2740::clear() {
     int ret = CAEN_FELib_SendCommand(handle, "/cmd/ClearData");
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("V2740 클리어 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 클리어 실패");
     }
-    if (verbose) std::cout << "V2740 클리어 성공" << std::endl;
+    if (verbose) std::cout << "V2740(" << connectionString << ") 클리어 성공" << std::endl;
 }
 
 void CAENV2740::configure() {
@@ -72,50 +72,50 @@ void CAENV2740::configure() {
 void CAENV2740::close() {
     int ret = CAEN_FELib_Close(handle);
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("V2740 연결 종료 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 연결 종료 실패");
     }
     handle = 0;
-    if (verbose) std::cout << "V2740 연결 종료 성공" << std::endl;
+    if (verbose) std::cout << "V2740(" << connectionString << ") 연결 종료 성공" << std::endl;
 }
 void CAENV2740::armAcquisition() {
     int ret = CAEN_FELib_SendCommand(handle, "/cmd/ArmAcquisition");
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("데이터 수집 시작 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 데이터 수집 시작 실패");
     }
 }
 
 void CAENV2740::disarmAcquisition() {
     int ret = CAEN_FELib_SendCommand(handle, "/cmd/DisarmAcquisition");
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("데이터 수집 중지 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 데이터 수집 중지 실패");
     }
 }
 
 void CAENV2740::startAcquisition() {
     int ret = CAEN_FELib_SendCommand(handle, "/cmd/SwStartAcquisition");
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("데이터 수집 시작 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 데이터 수집 시작 실패");
     }
 }
 
 void CAENV2740::stopAcquisition() {
     int ret = CAEN_FELib_SendCommand(handle, "/cmd/SwStopAcquisition");
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("데이터 수집 중지 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 데이터 수집 중지 실패");
     }
 }
 
 void CAENV2740::sendSWTrigger() {
     int ret = CAEN_FELib_SendCommand(handle, "/cmd/SendSWTrigger");
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("소프트웨어 트리거 전송 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 소프트웨어 트리거 전송 실패");
     }
 }
 void CAENV2740::sendChSWTrigger(int channel) {
     std::string command = "/ch/" + std::to_string(channel) + "/cmd/SendChSWTrigger";
     int ret = CAEN_FELib_SendCommand(handle, command.c_str());
     if (ret != CAEN_FELib_Success) {
-        throw std::runtime_error("채널 소프트웨어 트리거 전송 실패");
+        throw std::runtime_error("V2740(" + connectionString + ") 채널 소프트웨어 트리거 전송 실패");
     }
 }
 
@@ -123,10 +123,11 @@ void CAENV2740::sendChSWTrigger(int channel) {
 // Parameter treatment
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void CAENV2740::loadParameter(const CAENV2740Par& par) {
-    if (par.getFilename().empty()) throw std::runtime_error("파라미터 파일이 없습니다.");
+    if (par.getFilename().empty())
+        throw std::runtime_error("V2740(" + connectionString + ") 파라미터 파일이 없습니다.");
 
     std::cout << "================================================" << std::endl;
-    std::cout << "V2740 파라미터 로딩 시작" << std::endl;
+    std::cout << "V2740(" << connectionString << ") 파라미터 로딩 시작" << std::endl;
     std::cout << "파라미터 파일: " << par.getFilename() << std::endl;
 
     auto config = par.getConfig();
@@ -140,7 +141,7 @@ void CAENV2740::loadParameter(const CAENV2740Par& par) {
         for (const auto& it2 : it) parameterParsing(std::string(it2.key().data(), it2.key().size()), it2, channel);
     }
 
-    std::cout << "V2740 파라미터 로딩 완료" << std::endl;
+    std::cout << "V2740(" << connectionString << ") 파라미터 로딩 완료" << std::endl;
     std::cout << "================================================" << std::endl;
 }
 
