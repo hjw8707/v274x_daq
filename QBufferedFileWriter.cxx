@@ -1,6 +1,6 @@
 #include "QBufferedFileWriter.hxx"
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 ////////////////////////////////////////////////////////////
 // WriteThread
@@ -85,14 +85,14 @@ void QBufferedFileWriter::removeBuffer(const QString &bufferName) {
 }
 
 void QBufferedFileWriter::openFile(const QString &bufferName) {
-    qDebug() << "QBufferedFileWriter::openFile():" << bufferName;
+    qDebug() << "QBufferedFileWriter::openFile():" << bufferName << "->" << files[bufferName]->fileName();
     if (!bufferNames.contains(bufferName)) return;
     if (writeThread->isRunning()) return;
     files[bufferName]->open(QIODevice::WriteOnly);
 }
 
 void QBufferedFileWriter::openFile() {
-    qDebug() << "QBufferedFileWriter::openFile()";
+    qDebug() << "QBufferedFileWriter::openFile(): for all buffers";
     if (singleFileMode)
         singleFile->open(QIODevice::WriteOnly);
     else
@@ -100,14 +100,14 @@ void QBufferedFileWriter::openFile() {
 }
 
 void QBufferedFileWriter::closeFile(const QString &bufferName) {
-    qDebug() << "QBufferedFileWriter::closeFile():" << bufferName;
+    qDebug() << "QBufferedFileWriter::closeFile():" << bufferName << "->" << files[bufferName]->fileName();
     if (!bufferNames.contains(bufferName)) return;
     if (writeThread->isRunning()) return;
     files[bufferName]->close();
 }
 
 void QBufferedFileWriter::closeFile() {
-    qDebug() << "QBufferedFileWriter::closeFile()";
+    qDebug() << "QBufferedFileWriter::closeFile(): for all buffers";
     if (singleFileMode)
         singleFile->close();
     else
@@ -132,6 +132,7 @@ void QBufferedFileWriter::setSingleFileMode(bool flag, const QString &fileName) 
         if (fileName.isEmpty()) return;
         singleFileName = fileName;
         singleFile = new QFile(singleFileName);
+        singleFile->open(QIODevice::WriteOnly);
     } else {
         if (singleFile->isOpen()) singleFile->close();
         delete singleFile;
@@ -169,6 +170,16 @@ void QBufferedFileWriter::detachShm(const QString &bufferName) {
     qDebug() << "QBufferedFileWriter::detachShm():" << bufferName;
     if (sharedMemory[bufferName]->isAttached()) sharedMemory[bufferName]->detach();
 }
+
+void QBufferedFileWriter::checkShm(const QString &bufferName) {
+    qDebug() << "QBufferedFileWriter::checkShm():" << bufferName;
+
+    qDebug() << "Key:" << sharedMemory[bufferName]->key();
+    qDebug() << "Size:" << sharedMemory[bufferName]->size();
+    qDebug() << "Is attached:" << sharedMemory[bufferName]->isAttached();
+    qDebug() << "Error:" << sharedMemory[bufferName]->errorString();
+}
+
 void QBufferedFileWriter::setShmSave(bool flag) {
     qDebug() << "QBufferedFileWriter::setShmSave():" << (flag ? "ON" : "OFF");
     qDebug() << "QBufferedFileWriter::setShmSave(): SHM_SIZE" << QSHM_SIZE;
@@ -225,18 +236,22 @@ void QBufferedFileWriter::flush(const QString &bufferName) {
         }
         // write to shared memory
         if (shmSave) {
+            qDebug() << "QBufferedFileWriter::flush(): write to shared memory";
             sharedMemory[bufferName]->lock();
             uint64_t shmDataSize;
             memcpy(&shmDataSize, reinterpret_cast<uint64_t *>(sharedMemory[bufferName]->data()),
                    sizeof(uint64_t));  // 먼저 SHM 크기를 읽어옴
             uint64_t newDataSize = shmDataSize + buffers[bufferName]->buffer().size();
             // newDataSize > SHM_SIZE: Clear SHM
-            if (newDataSize > QSHM_SIZE) newDataSize = buffers[bufferName]->buffer().size();
+            if (newDataSize > QSHM_SIZE) {
+                newDataSize = buffers[bufferName]->buffer().size();
+                shmDataSize = 0;
+            }
             // Write size first to the SHM (first 8 bytes)
             memcpy(reinterpret_cast<uint64_t *>(sharedMemory[bufferName]->data()), &newDataSize, sizeof(uint64_t));
             // Write data to the SHM
             memcpy(reinterpret_cast<char *>(sharedMemory[bufferName]->data()) + sizeof(uint64_t) + shmDataSize,
-                   buffers[bufferName]->data().data(), buffers[bufferName]->buffer().size());
+                   buffers[bufferName]->data().constData(), buffers[bufferName]->buffer().size());
             sharedMemory[bufferName]->unlock();
         }
     }

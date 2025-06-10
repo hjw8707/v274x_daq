@@ -2,7 +2,8 @@
 #define QBUFFEREDFILEWRITER_HXX
 
 // #define QSHM_SIZE 2621448  // 2.5 MB + 8 bytes (uint64_t)
-#define QSHM_SIZE (512 * 1024 + 8)  // 512 kB + 8 bytes (uint64_t)
+// #define QSHM_SIZE (512 * 1024 + 8)  // 512 kB + 8 bytes (uint64_t)
+#define QSHM_SIZE (4 * 1024 * 1024 + 8)  // 4 MB + 8 bytes (uint64_t)
 
 #include <QtCore/QBuffer>
 #include <QtCore/QCoreApplication>
@@ -68,6 +69,7 @@ class QBufferedFileWriter : public QObject {
 
     void attachShm(const QString &bufferName);
     void detachShm(const QString &bufferName);
+    void checkShm(const QString &bufferName);
 
     uint64_t getFileSize(const QString &fileName) const;
     //////////////////////////////////////////////////////////

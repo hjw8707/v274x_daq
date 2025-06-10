@@ -6,9 +6,9 @@
 #include <QtCore/QCommandLineOption>
 #include <QtCore/QCommandLineParser>
 #include <QtCore/QCoreApplication>
+#include <QtCore/QDebug>
 #include <QtCore/QString>
 #include <QtWidgets/QApplication>
-#include <QDebug>
 
 #include "QOnlineMonitorWindow.hxx"  // QCAENV2740 헤더 파일 포함
 
@@ -20,13 +20,15 @@ int main(int argc, char *argv[]) {
     // QCommandLineParser를 사용하여 IP 주소를 받는 -a 옵션 추가
     QCommandLineParser parser;  // QCommandLineParser 객체 생성
     parser.setApplicationDescription(
-        "This program uses THttpServer to monitor the current data in SHM.");  // Set application description
-    parser.addHelpOption();                                                    // 도움말 옵션 추가
-    parser.addVersionOption();                                                 // 버전 옵션 추가
+        "This program uses THttpServer to monitor the current data in "
+        "SHM.");                // Set application description
+    parser.addHelpOption();     // 도움말 옵션 추가
+    parser.addVersionOption();  // 버전 옵션 추가
 
-    QCommandLineOption shmOption(QStringList() << "s"
-                                               << "shm",
-                                 "Names of shared memories to monitor, separated by commas.", "shm");
+    QCommandLineOption shmOption(
+        QStringList() << "s"
+                      << "shm",
+        "Names of shared memories to monitor, separated by commas.", "shm");
     parser.addOption(shmOption);
     parser.process(app);
 
@@ -44,7 +46,7 @@ int main(int argc, char *argv[]) {
 
     QOnlineMonitorWindow qom;
     std::thread appThread([&tApp]() { tApp.Run(kTRUE); });
-    for (const QString &shm : shmNames) qom.getOnlineMonitor()->attachSharedMemory(shm);
+    for (const QString &shm : shmNames) qom.addShmFromName(shm);
     qom.show();
     int ret = app.exec();
 

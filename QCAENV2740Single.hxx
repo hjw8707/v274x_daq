@@ -1,7 +1,7 @@
 #ifndef QCAENV2740SINGLE_H
 #define QCAENV2740SINGLE_H
 
-#include <QDebug>
+#include <QtCore/QDebug>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
@@ -28,7 +28,8 @@
 
 /**
  * @brief This class is the DataAcquisitionThread class.
- * @details It is responsible for acquiring and processing data in a separate thread.
+ * @details It is responsible for acquiring and processing data in a separate
+ * thread.
  */
 class DataAcquisitionThread : public QThread {
     Q_OBJECT
@@ -67,10 +68,22 @@ class QCAENV2740Single : public QMainWindow {
     QCAENV2740Single(QWidget *parent = nullptr);
     virtual ~QCAENV2740Single();  // 가상 소멸자 추가
 
-    void setIPAddress(const QString &ipAddress) { ipLineEdit->setText(ipAddress); }
+    void setIPAddress(const QString &ipAddress) {
+        ipLineEdit->setText(ipAddress);
+    }
     QString getIPAddress() const { return ipLineEdit->text(); }
 
     void connectDAQ();
+    void loadParameterFromFile(const QString &parFile);
+
+    void applySettings();
+
+    void startMonitoring();
+
+    inline void setDataDirectory(const QString &dataDirectory) {
+        this->dataDirectory = dataDirectory;
+    }
+    inline QString getDataDirectory() const { return dataDirectory; }
 
    private:
     bool verbose;
@@ -78,6 +91,8 @@ class QCAENV2740Single : public QMainWindow {
     // QString ipAddress;
     int currentStatus;
     uint32_t prev_aggregate_counter;
+
+    QString dataDirectory;
 
     CAENV2740 *daq;     // CAENV2740 객체
     CAENV2740Par *par;  // CAENV2740 Parameter 객체
@@ -105,15 +120,12 @@ class QCAENV2740Single : public QMainWindow {
     void viewParameter();
     void applyParameter();
 
-    void loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWidget *treeWidget);
+    void loadYamlToTreeWidget(ryml::ConstNodeRef rootNode,
+                              QTreeWidget *treeWidget);
 
     void handleData(uint8_t *data, size_t size);
 
     void setStatus(int status);
-
-    void applySettings();
-
-    void startMonitoring();
 
     // 위젯
     QLineEdit *ipLineEdit;

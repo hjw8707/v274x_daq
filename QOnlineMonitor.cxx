@@ -1,12 +1,16 @@
 #include "QOnlineMonitor.hxx"
 
 #include <iomanip>
-#include <QDebug>
+#include <QtCore/QDebug>
 
 QOnlineMonitor::QOnlineMonitor(QObject* parent) : QObject(parent) {
     qDebug() << "QOnlineMonitor constructor";
     httpServer = new THttpServer("http:8080");
     buffer = new uint64_t[QSHM_SIZE];
+    for (int i = 0; i < QSHM_SIZE; i++) {
+        buffer[i] = 0;
+    }
+    verbose = false;
     isRunning = false;
 
     thread = new QThread();
@@ -124,7 +128,7 @@ uint64_t QOnlineMonitor::getSharedMemorySize(QString name) {
 
 uint64_t* QOnlineMonitor::getSharedMemoryData(QString name, uint64_t size) {
     QReadLocker locker(locks[name]);
-    memcpy(buffer, reinterpret_cast<uint64_t*>(sharedMemory[name]->data()) + 1, size * sizeof(uint64_t));
+    memcpy(buffer, reinterpret_cast<uint64_t*>(sharedMemory[name]->data()) + 1, size);
     currentShmName = name;
     return buffer;
 }
@@ -136,11 +140,10 @@ void QOnlineMonitor::clearSharedMemory(QString name) {
     currentShmName = "";
 }
 
-void QOnlineMonitor::parseData(uint64_t* datas, uint64_t size) {
+void QOnlineMonitor::parseData(uint64_t* datas, uint64_t size) {  // size = array size of datas (in uint64_t = 8 bytes)
     if (size <= 0) return;
     // endian 변환
     for (int i = 0; i < size; i++) datas[i] = __builtin_bswap64(datas[i]);
-
     // 헤더 파싱
     int eventType = parseHeader(datas[0]);
     int startIndex;
@@ -179,6 +182,8 @@ int QOnlineMonitor::parseHeader(uint64_t header) {
     eventType = (header >> 60) & 0xF;               // 60 ~ 63 비트 추출
 
     if (verbose) {
+        std::cout << "parseHeader" << std::endl;
+        std::cout << "Header: " << header << std::endl;
         std::cout << "nWords: " << nWords << std::endl;
         std::cout << "aggregate_counter: " << aggregate_counter << std::endl;
         std::cout << "flush: " << flush << std::endl;
@@ -217,6 +222,12 @@ void QOnlineMonitor::stopRunParser(uint64_t* datas) {
 }
 
 void QOnlineMonitor::eventParser(uint64_t* datas, int nWords) {
+    if (verbose) {
+        std::cout << "Event Parser" << std::endl;
+        std::cout << "datas[0]: " << datas[0] << std::endl;
+        std::cout << "datas[1]: " << datas[1] << std::endl;
+        std::cout << "nWords: " << nWords << std::endl;
+    }
     int channel = (datas[0] >> 56) & 0x7F;
     bool special_event = (datas[0] >> 55) & 0x1;
     uint64_t timestamp = datas[0] & 0xFFFFFFFFFFFF;
@@ -226,7 +237,7 @@ void QOnlineMonitor::eventParser(uint64_t* datas, int nWords) {
     uint16_t energy_short = (datas[1] >> 26) & 0xFFFF;
     uint16_t fine_timestamp = (datas[1] >> 16) & 0xFFFF;
     uint16_t energy = datas[1] & 0xFFFF;
-
+    
     try {
         histograms[currentShmName][channel]->Fill(energy);
     } catch (const std::exception& e) {
@@ -263,10 +274,11 @@ void QOnlineMonitor::run() {
         for (auto& shm : sharedMemory) {
             if (shm->isAttached()) {
                 uint64_t size = getSharedMemorySize(shm->key());
-                // histograms[shm->key()][0]->Fill(100); // test
                 if (size > 0) {
                     uint64_t* data = getSharedMemoryData(shm->key(), size);
-                    parseData(data, size);
+                    parseData(data, size/8);
+                    // SHM should be cleared after parsing data
+                    clearSharedMemory(shm->key());
                 }
             }
         }

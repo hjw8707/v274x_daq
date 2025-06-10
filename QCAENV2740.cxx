@@ -1,6 +1,6 @@
 #include "QCAENV2740.hxx"
 
-#include <QCloseEvent>
+#include <QtGui/QCloseEvent>
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>

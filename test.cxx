@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
     writer->setFileName("buffer2", "new_file2.dat");
 
     // 단일 파일 모드 설정
-    writer->setSingleFileMode(true, "single_file.dat");
-
+    // writer->setSingleFileMode(true, "single_file.dat");
+    writer->openFile();
     // 공유 메모리 저장 설정
     writer->setShmSave(true);
 

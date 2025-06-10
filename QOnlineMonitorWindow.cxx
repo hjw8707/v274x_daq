@@ -1,6 +1,6 @@
 #include "QOnlineMonitorWindow.hxx"
 
-#include <QDebug>
+#include <QtCore/QDebug>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
@@ -8,7 +8,8 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QVBoxLayout>
 
-QOnlineMonitorWindow::QOnlineMonitorWindow(QWidget* parent) : QMainWindow(parent) {
+QOnlineMonitorWindow::QOnlineMonitorWindow(QWidget* parent)
+    : QMainWindow(parent) {
     qDebug() << "QOnlineMonitorWindow::QOnlineMonitorWindow()";
     setWindowTitle("V274XMOnline Monitor");
 
@@ -33,9 +34,9 @@ void QOnlineMonitorWindow::initUI() {
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     layout->addLayout(buttonLayout);
 
-    QPushButton* startButton = new QPushButton("Start");
-    QPushButton* stopButton = new QPushButton("Stop");
-    QPushButton* exitButton = new QPushButton("Exit");
+    startButton = new QPushButton("Start");
+    stopButton = new QPushButton("Stop");
+    exitButton = new QPushButton("Exit");
 
     buttonLayout->addWidget(startButton);
     buttonLayout->addWidget(stopButton);
@@ -59,10 +60,10 @@ void QOnlineMonitorWindow::initUI() {
     QLabel* shmNameLabel = new QLabel("SHM Name:");
     shmNameLineEdit = new QLineEdit();
     shmNameLineEdit->setMinimumWidth(200);
-    QPushButton* addShmButton = new QPushButton("Add");
-    QComboBox* shmListComboBox = new QComboBox();
+    addShmButton = new QPushButton("Add");
+    shmListComboBox = new QComboBox();
     shmListComboBox->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-    QPushButton* removeShmButton = new QPushButton("Remove");
+    removeShmButton = new QPushButton("Remove");
 
     shmLayout->addWidget(shmNameLabel);
     shmLayout->addWidget(shmNameLineEdit);
@@ -74,52 +75,68 @@ void QOnlineMonitorWindow::initUI() {
     ////////////////////////////////////////////////////////////
     // Connect
     ////////////////////////////////////////////////////////////
-    connect(startButton, &QPushButton::clicked, this, &QOnlineMonitorWindow::start);
-    connect(stopButton, &QPushButton::clicked, this, &QOnlineMonitorWindow::stop);
+    connect(startButton, &QPushButton::clicked, this,
+            &QOnlineMonitorWindow::start);
+    connect(stopButton, &QPushButton::clicked, this,
+            &QOnlineMonitorWindow::stop);
     connect(exitButton, &QPushButton::clicked, this, &QMainWindow::close);
-    connect(clearHistogramButton, &QPushButton::clicked, this, &QOnlineMonitorWindow::clearHistogram);
-    connect(addShmButton, &QPushButton::clicked, [this, shmListComboBox]() {
-        QString shmName = shmNameLineEdit->text();
-        if (!shmName.isEmpty()) {
-            shmListComboBox->addItem(shmName);
-            onlineMonitor->attachSharedMemory(shmName);
-            shmNameLineEdit->clear();
-        }
-    });
-    connect(removeShmButton, &QPushButton::clicked, [this, shmListComboBox]() {
-        int currentIndex = shmListComboBox->currentIndex();
-        if (currentIndex != -1) {
-            QString shmName = shmListComboBox->itemText(currentIndex);
-            onlineMonitor->detachSharedMemory(shmName);
-            shmListComboBox->removeItem(currentIndex);
-        }
-    });
+    connect(clearHistogramButton, &QPushButton::clicked, this,
+            &QOnlineMonitorWindow::clearHistogram);
+    connect(addShmButton, &QPushButton::clicked, this,
+            &QOnlineMonitorWindow::addShm);
+    connect(removeShmButton, &QPushButton::clicked, this,
+            &QOnlineMonitorWindow::removeShm);
     //////////////////////////////////////////////////////////////
     // Button Enable/Disable
     //////////////////////////////////////////////////////////////
     stopButton->setEnabled(false);
-    connect(startButton, &QPushButton::clicked,
-            [startButton, stopButton, exitButton, addShmButton, shmListComboBox, removeShmButton]() {
-                startButton->setEnabled(false);
-                stopButton->setEnabled(true);
-                exitButton->setEnabled(false);
-                addShmButton->setEnabled(false);
-                shmListComboBox->setEnabled(false);
-                removeShmButton->setEnabled(false);
-            });
-    connect(stopButton, &QPushButton::clicked,
-            [startButton, stopButton, exitButton, addShmButton, shmListComboBox, removeShmButton]() {
-                startButton->setEnabled(true);
-                stopButton->setEnabled(false);
-                exitButton->setEnabled(true);
-                addShmButton->setEnabled(true);
-                shmListComboBox->setEnabled(true);
-                removeShmButton->setEnabled(true);
-            });
 }
 
-void QOnlineMonitorWindow::start() { onlineMonitor->start(); }
+void QOnlineMonitorWindow::start() {
+    startButton->setEnabled(false);
+    stopButton->setEnabled(true);
+    exitButton->setEnabled(false);
+    addShmButton->setEnabled(false);
+    shmListComboBox->setEnabled(false);
+    removeShmButton->setEnabled(false);
+    onlineMonitor->start();
+}
 
-void QOnlineMonitorWindow::stop() { onlineMonitor->stop(); }
+void QOnlineMonitorWindow::stop() {
+    startButton->setEnabled(true);
+    stopButton->setEnabled(false);
+    exitButton->setEnabled(true);
+    addShmButton->setEnabled(true);
+    shmListComboBox->setEnabled(true);
+    removeShmButton->setEnabled(true);
+    onlineMonitor->stop();
+}
 
 void QOnlineMonitorWindow::clearHistogram() { onlineMonitor->clearHistogram(); }
+
+void QOnlineMonitorWindow::addShmFromName(const QString& name) {
+    QString shmName = "shm_" + name;  // name of the shared memory created by
+                                      // DAQ program = shm_(buffer_name)
+    shmListComboBox->addItem(shmName);
+    onlineMonitor->attachSharedMemory(shmName);
+}
+
+void QOnlineMonitorWindow::addShm() {
+    QString shmName =
+        "shm_" + shmNameLineEdit->text();  // name of the shared memory created
+                                           // by DAQ program = shm_(buffer_name)
+    if (!shmName.isEmpty()) {
+        shmListComboBox->addItem(shmName);
+        onlineMonitor->attachSharedMemory(shmName);
+        shmNameLineEdit->clear();
+    }
+}
+
+void QOnlineMonitorWindow::removeShm() {
+    int currentIndex = shmListComboBox->currentIndex();
+    if (currentIndex != -1) {
+        QString shmName = shmListComboBox->itemText(currentIndex);
+        onlineMonitor->detachSharedMemory(shmName);
+        shmListComboBox->removeItem(currentIndex);
+    }
+}

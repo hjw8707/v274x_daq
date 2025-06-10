@@ -1,53 +1,51 @@
 ch_default: &ch_default # trigger
   wave_trigger_source: disabled # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
   event_trigger_source: chselftrigger # "Disabled", "Ch64Trigger", "ChSelfTrigger", "SwTrg", "ADCOverSaturation", "ADCUnderSaturation", "ExternalInhibit", "TRGIN", "GlobalTriggerSource", "LVDS", "ITLA", "ITLB"
-  channels_trigger_mask: 0x0FF # 0x0000 ~ 0xffff
+  channels_trigger_mask: 0xFFFF # 0x0000 ~ 0xffff
   wave_saving: always # "Always", "OnRequest"
   veto_source: disabled # "Disabled", "BoardVeto", "ADCOverSaturation", "ADCUnderSaturation"
   veto_width: 0 # [ns]
   # waveform
-  record_length: 20000 # [ns]
+  record_length: 32000 # [ns]
   downsampling_factor: 1 # 1, 2, 4, 8
-  analog_probe: [adcinput, cfdfilter] # "ADCInput", "ADCInputBaseline", "CFDFilter"
+  analog_probe: [adcinput, timefilter] # "ADCInput", "ADCInputBaseline", "CFDFilter"
   digital_probe:
-    [trigger, longgate, shortgate, chargeready] #"Trigger", "CFDFilterArmed", "ReTriggerGuard", "ADCInputBaselineFreeze",
+    [trigger, timefilterarmed, energyfilterpeaking, adcsaturation] #"Trigger", "CFDFilterArmed", "ReTriggerGuard", "ADCInputBaselineFreeze",
     # "ADCinputOverthreshold", "ChargeReady", "LongGate" "PileUpTrigger", "ShortGate",
     # "ChargeOverRange", "ADCSaturation", "ADCInputNegativeOverThreshold"
-  pre_trigger: 496 # [ns]
+  pre_trigger: 2000 # [ns]
   wave_data_source:
     adc_data #"ADC_DATA", "ADC_TEST_TOGGLE", "ADC_TEST_RAMP",
     #"ADC_TEST_SIN", "ADC_TEST_PRBS", "Ramp", "IPE", "SquareWave"
   # itl:
-  itl_connect: itlb # "Disabled", "ITLA", "ITLB"
+  itl_connect: disabled # "Disabled", "ITLA", "ITLB"
   # input:
   self_trig_width: 64 # [ns]
   enable: false # true, false
-  dc_offset: 50 # [%]
+  dc_offset: 80 # [%]
   signal_offset: 0 # [uV]
-  trig_threshold: 350 # [ADC counts]
-  pulse_polarity: positive # "Positive", "Negative"
+  trig_threshold: 65 # [ADC counts]
+  pulse_polarity: negative # "Positive", "Negative"
   # event:
   energy_skim_low_discriminator: 0 # [bin]
   energy_skim_high_discriminator: 65535 # [bin]
   event_selector: all # "All", "PileUp", "EnergySkim"
   wave_selector: all # "All", "PileUp", "EnergySkim"
-  event_neutron_reject: false # true, false
-  wave_neutron_reject: false # true, false
   coin_mask: disabled # "Disabled", "Ch64Trigger", "TRGIN", "GlobalTriggerSource", "ITLA", "ITLB"
   anticoin_mask: disabled # "Disabled", "Ch64Trigger", "TRGIN", "GlobalTriggerSource", "ITLA", "ITLB"
   coin_length: 0 # [ns]
   # dppcommon:
   timefilter_retrigger_guard: 0 # [ns]
   # dpppha:
-  timefilter_rise_time: 0 # [ns]
-  energyfilter_rise_time: 0 # [ns]
-  energyfilter_flat_top: 0 # [ns]
-  energyfilter_peaking_pos: 0 # [%]
+  timefilter_rise_time: 25 # [Sample], 1S = 8 ns
+  energyfilter_rise_time: 625 # [Sample]
+  energyfilter_flat_top: 125 # [sample]
+  energyfilter_peaking_pos: 50 # [%]
   energyfilter_peaking_avg: oneshot # "Oneshot", "LowAVG", "MediumAVG", "HighAVG"
-  energyfilter_pole_zero: 0 # [ns]
+  energyfilter_pole_zero: 625 # [sample]
   energyfilter_fine_gain: 1 # 0.001 unit
   energyfilter_lf_limit: false # true, false
-  energyfilter_baseline_avg: fixed # "Fixed", "VeryLow", "Low", "MediumLow", "Medium", "MediumHigh", "High"
+  energyfilter_baseline_avg: medium # "Fixed", "VeryLow", "Low", "MediumLow", "Medium", "MediumHigh", "High"
   energyfilter_baseline_guard: 0 # [ns]
   energyfilter_pileup_guard: 0 # [ns]
 
@@ -59,11 +57,11 @@ global:
   start_source: [swcmd] #EncodedClkIn", "SINlevel", "SINedge", "SWcmd", "LVDS", "P0"
   global_trigger_source: [swtrg] # "TrgIn", "P0", "SwTrg", "LVDS", "ITLA", "ITLB", "ITLA_AND_ITLB", "ITLA_OR_ITLB", "EncodedClkIn", "GPIO", "TestPulse", "UserTrg"
   trgout_mode:
-    itlb # "Disabled", "TrgIn", "P0", "SwTrg", "LVDS", "ITLA", "ITLB", "ITLA_AND_ITLB",
+    disabled # "Disabled", "TrgIn", "P0", "SwTrg", "LVDS", "ITLA", "ITLB", "ITLA_AND_ITLB",
     # "ITLA_OR_ITLB", "EncodedClkIn", "RUN", "RefClk", "TestPulse", "Busy", "UserTrgout",
     #"Fixed0", "Fixed1", "SyncIn", "SIN", "GPIO", "LBinClk", "AcceptTrg", "TrgClk"
   gpio_mode:
-    run # "Disabled", "TrgIn", "P0", "SIN", "LVDS", "ITLA", "ITLB",
+    disabled # "Disabled", "TrgIn", "P0", "SIN", "LVDS", "ITLA", "ITLB",
     #"ITLA_AND_ITLB", "ITLA_OR_ITLB", "EncodedClkIn", "SWTrg", "Run", "RefClk",
     #"TestPulse", "Busy", "UserGPO", "Fixed0", "Fixed1"
   busyin_source: sin # "Disabled", "SIN", "GPIO", "LVDS"
@@ -133,7 +131,7 @@ channel:
     enable: true
   - number: 5
     <<: *ch_default
-    enable: true
+    enable: false
   - number: 6
     <<: *ch_default
     enable: true
@@ -142,28 +140,40 @@ channel:
     enable: true
   - number: 8
     <<: *ch_default
-  - number: 9
+    enable: true    
+  - number: 9  
     <<: *ch_default
+    enable: true    
   - number: 10
     <<: *ch_default
+    enable: true    
   - number: 11
     <<: *ch_default
+    enable: true    
   - number: 12
     <<: *ch_default
+    enable: true    
   - number: 13
     <<: *ch_default
+    enable: true    
   - number: 14
     <<: *ch_default
+    enable: true    
   - number: 15
     <<: *ch_default
+    enable: true    
   - number: 16
     <<: *ch_default
+    enable: true
   - number: 17
     <<: *ch_default
+    enable: true    
   - number: 18
     <<: *ch_default
+    enable: true    
   - number: 19
     <<: *ch_default
+    enable: true    
   - number: 20
     <<: *ch_default
   - number: 21

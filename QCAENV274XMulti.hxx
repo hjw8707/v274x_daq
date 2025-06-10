@@ -1,7 +1,7 @@
 #ifndef QCAENV274XMULTI_H
 #define QCAENV274XMULTI_H
 
-#include <QDebug>
+#include <QtCore/QDebug>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>

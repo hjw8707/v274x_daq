@@ -1,7 +1,7 @@
 #ifndef QCAENV2740_H
 #define QCAENV2740_H
 
-#include <QDebug>
+#include <QtCore/QDebug>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>

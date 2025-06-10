@@ -1,6 +1,6 @@
 #include "QCAENV274XMulti.hxx"
 
-#include <QCloseEvent>
+#include <QtGui/QCloseEvent>
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
@@ -40,7 +40,7 @@ QCAENV274XMulti::QCAENV274XMulti(QWidget *parent)
     elapsedTimer = new QElapsedTimer();
 
     writer = QBufferedFileWriter::getInstance();
-    writer->setShmSave(true);
+    writer->setShmSave(false);
 
     nosave = false;
 

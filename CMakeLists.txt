@@ -105,7 +105,7 @@ set_source_files_properties(${app_icon_macos} PROPERTIES
         MACOSX_PACKAGE_LOCATION "Resources")
 
 # v274x_daq 실행 파일 추가
-add_executable(v274x_daq v274x_daq.cxx)
+add_executable(v274x_daq v274x_daq.cxx SettingsManager.hxx)
 
 if (BUNDLE_APP)
     set_target_properties(v274x_daq PROPERTIES
@@ -173,9 +173,9 @@ install(TARGETS v274xm_mon
 # test: console application for testing
 #########################################################################
 # test 컴파일 관련 내용 추가
-#add_executable(test test.cxx)
-#target_include_directories(test PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-#target_link_libraries(test PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
+# add_executable(test test.cxx)
+# target_include_directories(test PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+# target_link_libraries(test PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
 #
 #add_executable(test2 test2.cxx)
 #target_include_directories(test2 PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
