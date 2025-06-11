@@ -47,27 +47,23 @@ class SettingsManager {
     }
 
     QString getIPAddress() const { return m_settings["ip_address"].toString(); }
-
     QString getParameterFile() const { return m_settings["parameter_file"].toString(); }
-
     QString getDataDirectory() const { return m_settings["data_directory"].toString(); }
-
     QString getRunName() const { return m_settings["run_name"].toString(); }
-
     int getRunNumber() const {
         QJsonValue v = m_settings["run_number"];
         return v.isUndefined() ? -1 : v.toInt();
     }
+    bool getAutoConnect() const { return m_settings["auto_connect"].toBool(); }
+    bool getAutoParameter() const { return m_settings["auto_parameter"].toBool(); }
 
     void setIPAddress(const QString& ip) { m_settings["ip_address"] = ip; }
-
     void setParameterFile(const QString& file) { m_settings["parameter_file"] = file; }
-
     void setDataDirectory(const QString& dataDirectory) { m_settings["data_directory"] = dataDirectory; }
-
     void setRunName(const QString& runName) { m_settings["run_name"] = runName; }
-
     void setRunNumber(const int& runNumber) { m_settings["run_number"] = runNumber; }
+    void setAutoConnect(const bool& autoConnect) { m_settings["auto_connect"] = autoConnect; }
+    void setAutoParameter(const bool& autoParameter) { m_settings["auto_parameter"] = autoParameter; }
 
    private:
     SettingsManager() {
@@ -77,6 +73,8 @@ class SettingsManager {
         m_settings["run_number"] = 0;
         m_settings["ip_address"] = "192.168.1.100";
         m_settings["parameter_file"] = "default.par";
+        m_settings["auto_connect"] = false;
+        m_settings["auto_parameter"] = false;
     }
     QJsonObject m_settings;
 };

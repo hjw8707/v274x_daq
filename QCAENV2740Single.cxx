@@ -628,7 +628,7 @@ void QCAENV2740Single::setStatus(int status) {
             statusText = "Status: Unknown";
             break;
     }
-    qDebug() << "QCAENV2740Single::setStatus() " << statusText.toStdString();
+    qDebug() << "QCAENV2740Single::setStatus() " << statusText;
     Q_EMIT statusUpdated(statusText);  // 상태가 변경될 때 시그널 발송
 }
 
@@ -648,6 +648,9 @@ void QCAENV2740Single::loadSettings(SettingsManager &settings) {
     if (!settings.getDataDirectory().isEmpty()) dataDirectoryLineEdit->setText(settings.getDataDirectory());
     if (!settings.getRunName().isEmpty()) setRunName(settings.getRunName());
     if (settings.getRunNumber() > -1) setRunNumber(settings.getRunNumber());
+
+    if (settings.getAutoConnect()) connectDAQ();
+    if (settings.getAutoParameter() && currentStatus == 1) loadParameter();
 }
 
 void QCAENV2740Single::saveSettings(SettingsManager &settings) {
