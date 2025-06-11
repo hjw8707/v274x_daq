@@ -1,9 +1,9 @@
 #include "QCAENV2740.hxx"
 
-#include <QtGui/QCloseEvent>
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
+#include <QtGui/QCloseEvent>
 #include <QtGui/QIcon>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QCheckBox>

@@ -25,6 +25,7 @@
 #include "CAENV2740.hxx"  // CAENV2740 클래스 포함
 #include "CAENV2740Par.hxx"
 #include "QBufferedFileWriter.hxx"
+#include "SettingsManager.hxx"
 
 /**
  * @brief This class is the DataAcquisitionThread class.
@@ -68,9 +69,7 @@ class QCAENV2740Single : public QMainWindow {
     QCAENV2740Single(QWidget *parent = nullptr);
     virtual ~QCAENV2740Single();  // 가상 소멸자 추가
 
-    void setIPAddress(const QString &ipAddress) {
-        ipLineEdit->setText(ipAddress);
-    }
+    void setIPAddress(const QString &ipAddress) { ipLineEdit->setText(ipAddress); }
     QString getIPAddress() const { return ipLineEdit->text(); }
 
     void connectDAQ();
@@ -80,10 +79,16 @@ class QCAENV2740Single : public QMainWindow {
 
     void startMonitoring();
 
-    inline void setDataDirectory(const QString &dataDirectory) {
-        this->dataDirectory = dataDirectory;
-    }
-    inline QString getDataDirectory() const { return dataDirectory; }
+    int getCurrentStatus() const { return currentStatus; }
+
+    void setRunName(const QString &runName);
+    void setRunNumber(const int &runNumber);
+
+    void loadSettings(SettingsManager &settings);
+    void saveSettings(SettingsManager &settings);
+
+   protected:
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
    private:
     bool verbose;
@@ -91,8 +96,6 @@ class QCAENV2740Single : public QMainWindow {
     // QString ipAddress;
     int currentStatus;
     uint32_t prev_aggregate_counter;
-
-    QString dataDirectory;
 
     CAENV2740 *daq;     // CAENV2740 객체
     CAENV2740Par *par;  // CAENV2740 Parameter 객체
@@ -120,8 +123,7 @@ class QCAENV2740Single : public QMainWindow {
     void viewParameter();
     void applyParameter();
 
-    void loadYamlToTreeWidget(ryml::ConstNodeRef rootNode,
-                              QTreeWidget *treeWidget);
+    void loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWidget *treeWidget);
 
     void handleData(uint8_t *data, size_t size);
 
@@ -131,6 +133,7 @@ class QCAENV2740Single : public QMainWindow {
     QLineEdit *ipLineEdit;
     QLineEdit *parameterLineEdit;
     QLineEdit *runNameLineEdit;
+    QLineEdit *dataDirectoryLineEdit;
     QSpinBox *runNumberSpinBox;
     QCheckBox *autoIncCheckBox;
     QSpinBox *measurementTimeSpinBox;
