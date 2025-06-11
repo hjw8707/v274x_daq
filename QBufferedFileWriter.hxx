@@ -2,8 +2,11 @@
 #define QBUFFEREDFILEWRITER_HXX
 
 // #define QSHM_SIZE 2621448  // 2.5 MB + 8 bytes (uint64_t)
-// #define QSHM_SIZE (512 * 1024 + 8)  // 512 kB + 8 bytes (uint64_t)
+#if defined(__APPLE__)
+#define QSHM_SIZE (512 * 1024 + 8)  // 512 kB + 8 bytes (uint64_t)
+#else
 #define QSHM_SIZE (4 * 1024 * 1024 + 8)  // 4 MB + 8 bytes (uint64_t)
+#endif
 
 #include <QtCore/QBuffer>
 #include <QtCore/QCoreApplication>
