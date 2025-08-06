@@ -57,7 +57,7 @@ void QBufferedFileWriter::addBuffer(const QString &bufferName, const QString &fi
     files[bufferName] = new QFile(fileName);
     buffers[bufferName] = new QBuffer();
     streams[bufferName] = new QDataStream(buffers[bufferName]);
-    sharedMemory[bufferName] = new QSharedMemory("shm_" + bufferName);
+    sharedMemory[bufferName] = new QSharedMemory(bufferName);
     if (shmSave) attachShm(bufferName);
     locks[bufferName] = new QReadWriteLock();
     files[bufferName]->open(QIODevice::WriteOnly);

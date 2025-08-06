@@ -20,7 +20,6 @@
 #include <QtWidgets/QTreeWidget>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
-#include <fstream>
 
 #include "CAENV2740.hxx"  // CAENV2740 클래스 포함
 #include "CAENV2740Par.hxx"

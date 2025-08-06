@@ -8,8 +8,7 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QVBoxLayout>
 
-QOnlineMonitorWindow::QOnlineMonitorWindow(QWidget* parent)
-    : QMainWindow(parent) {
+QOnlineMonitorWindow::QOnlineMonitorWindow(QWidget* parent) : QMainWindow(parent) {
     qDebug() << "QOnlineMonitorWindow::QOnlineMonitorWindow()";
     setWindowTitle("V274XMOnline Monitor");
 
@@ -75,17 +74,12 @@ void QOnlineMonitorWindow::initUI() {
     ////////////////////////////////////////////////////////////
     // Connect
     ////////////////////////////////////////////////////////////
-    connect(startButton, &QPushButton::clicked, this,
-            &QOnlineMonitorWindow::start);
-    connect(stopButton, &QPushButton::clicked, this,
-            &QOnlineMonitorWindow::stop);
+    connect(startButton, &QPushButton::clicked, this, &QOnlineMonitorWindow::start);
+    connect(stopButton, &QPushButton::clicked, this, &QOnlineMonitorWindow::stop);
     connect(exitButton, &QPushButton::clicked, this, &QMainWindow::close);
-    connect(clearHistogramButton, &QPushButton::clicked, this,
-            &QOnlineMonitorWindow::clearHistogram);
-    connect(addShmButton, &QPushButton::clicked, this,
-            &QOnlineMonitorWindow::addShm);
-    connect(removeShmButton, &QPushButton::clicked, this,
-            &QOnlineMonitorWindow::removeShm);
+    connect(clearHistogramButton, &QPushButton::clicked, this, &QOnlineMonitorWindow::clearHistogram);
+    connect(addShmButton, &QPushButton::clicked, this, &QOnlineMonitorWindow::addShm);
+    connect(removeShmButton, &QPushButton::clicked, this, &QOnlineMonitorWindow::removeShm);
     //////////////////////////////////////////////////////////////
     // Button Enable/Disable
     //////////////////////////////////////////////////////////////
@@ -115,16 +109,13 @@ void QOnlineMonitorWindow::stop() {
 void QOnlineMonitorWindow::clearHistogram() { onlineMonitor->clearHistogram(); }
 
 void QOnlineMonitorWindow::addShmFromName(const QString& name) {
-    QString shmName = "shm_" + name;  // name of the shared memory created by
-                                      // DAQ program = shm_(buffer_name)
+    QString shmName = name;  // name of the shared memory created by DAQ program
     shmListComboBox->addItem(shmName);
     onlineMonitor->attachSharedMemory(shmName);
 }
 
 void QOnlineMonitorWindow::addShm() {
-    QString shmName =
-        "shm_" + shmNameLineEdit->text();  // name of the shared memory created
-                                           // by DAQ program = shm_(buffer_name)
+    QString shmName = shmNameLineEdit->text();  // name of the shared memory created by DAQ program
     if (!shmName.isEmpty()) {
         shmListComboBox->addItem(shmName);
         onlineMonitor->attachSharedMemory(shmName);
