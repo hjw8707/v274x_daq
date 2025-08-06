@@ -40,7 +40,7 @@ QCAENV274XMulti::QCAENV274XMulti(QWidget *parent)
     elapsedTimer = new QElapsedTimer();
 
     writer = QBufferedFileWriter::getInstance();
-    writer->setShmSave(false);
+    writer->setShmSave(true);
 
     nosave = false;
 

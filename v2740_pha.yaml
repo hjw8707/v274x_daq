@@ -24,7 +24,7 @@ ch_default: &ch_default # trigger
   enable: false # true, false
   dc_offset: 80 # [%]
   signal_offset: 0 # [uV]
-  trig_threshold: 65 # [ADC counts]
+  trig_threshold: 130 # [ADC counts]
   pulse_polarity: negative # "Positive", "Negative"
   # event:
   energy_skim_low_discriminator: 0 # [bin]
@@ -131,7 +131,7 @@ channel:
     enable: true
   - number: 5
     <<: *ch_default
-    enable: false
+    enable: true
   - number: 6
     <<: *ch_default
     enable: true
@@ -164,16 +164,12 @@ channel:
     enable: true    
   - number: 16
     <<: *ch_default
-    enable: true
   - number: 17
     <<: *ch_default
-    enable: true    
   - number: 18
     <<: *ch_default
-    enable: true    
   - number: 19
     <<: *ch_default
-    enable: true    
   - number: 20
     <<: *ch_default
   - number: 21
