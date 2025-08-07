@@ -3,6 +3,62 @@
 #include <QtCore/QDebug>
 
 ////////////////////////////////////////////////////////////
+// RawDataHeader
+////////////////////////////////////////////////////////////
+RawDataHeader::RawDataHeader() : runName(""), runNumber(0), startTime(0), comment("") {}
+RawDataHeader::RawDataHeader(const char *runName, uint64_t runNumber, const QDateTime &startTime, const char *comment)
+    : runName(runName), runNumber(runNumber), startTime(startTime.toSecsSinceEpoch()), comment(comment) {}
+RawDataHeader::~RawDataHeader() {}
+
+void RawDataHeader::setRunName(const QString &runName) { this->runName = runName; }
+void RawDataHeader::setRunName(const char *runName) { this->runName = QString(runName); }
+void RawDataHeader::setRunName(const std::string &runName) { this->runName = QString(runName.c_str()); }
+void RawDataHeader::setRunNumber(uint64_t runNumber) { this->runNumber = runNumber; }
+void RawDataHeader::setStartTime(uint64_t startTime) { this->startTime = startTime; }
+void RawDataHeader::setStartTime(const QDateTime &startTime) { this->startTime = startTime.toSecsSinceEpoch(); }
+void RawDataHeader::setComment(const QString &comment) { this->comment = comment; }
+void RawDataHeader::setComment(const char *comment) { this->comment = QString(comment); }
+void RawDataHeader::setComment(const std::string &comment) { this->comment = QString(comment.c_str()); }
+
+QString RawDataHeader::getRunName() const { return runName; }
+uint64_t RawDataHeader::getRunNumber() const { return runNumber; }
+uint64_t RawDataHeader::getStartTime() const { return startTime; }
+QString RawDataHeader::getComment() const { return comment; }
+
+QByteArray RawDataHeader::toByteArray() const {
+    QByteArray bytes;
+    QDataStream stream(&bytes, QIODevice::WriteOnly);
+    stream << header << runName.leftJustified(8, '\0', true) << runNumber << startTime
+           << comment.leftJustified(40, '\0', true);
+    qDebug() << "RawDataHeader::toByteArray():" << bytes.size();
+    return bytes;
+}
+
+////////////////////////////////////////////////////////////
+// RawDataEnder
+////////////////////////////////////////////////////////////
+RawDataEnder::RawDataEnder() : endTime(0), comment("") {}
+RawDataEnder::RawDataEnder(const QDateTime &endTime, const char *comment)
+    : endTime(endTime.toSecsSinceEpoch()), comment(comment) {}
+RawDataEnder::~RawDataEnder() {}
+
+void RawDataEnder::setEndTime(uint64_t endTime) { this->endTime = endTime; }
+void RawDataEnder::setEndTime(const QDateTime &endTime) { this->endTime = endTime.toSecsSinceEpoch(); }
+void RawDataEnder::setComment(const QString &comment) { this->comment = comment; }
+void RawDataEnder::setComment(const std::string &comment) { this->comment = QString(comment.c_str()); }
+void RawDataEnder::setComment(const char *comment) { this->comment = QString(comment); }
+
+uint64_t RawDataEnder::getEndTime() const { return endTime; }
+QString RawDataEnder::getComment() const { return comment; }
+QByteArray RawDataEnder::toByteArray() const {
+    QByteArray bytes;
+    QDataStream stream(&bytes, QIODevice::WriteOnly);
+    stream << header << endTime << comment.leftJustified(40, '\0', true);
+    qDebug() << "RawDataEnder::toByteArray():" << bytes.size();
+    return bytes;
+}
+
+////////////////////////////////////////////////////////////
 // WriteThread
 ////////////////////////////////////////////////////////////
 WriteThread::WriteThread(QBufferedFileWriter *writer) : writer(writer), running(false) {}

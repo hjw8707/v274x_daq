@@ -189,13 +189,13 @@ install(TARGETS v274xm_mon
 # test: console application for testing
 #########################################################################
 # test 컴파일 관련 내용 추가
-# add_executable(test test.cxx)
-# target_include_directories(test PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-# target_link_libraries(test PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
-#
-#add_executable(test2 test2.cxx)
-#target_include_directories(test2 PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-#target_link_libraries(test2 PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
+add_executable(test test.cxx)
+target_include_directories(test PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(test PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
+
+add_executable(test2 test2.cxx)
+target_include_directories(test2 PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(test2 PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
 
 
 # 옵션으로 디버깅 정보 생성

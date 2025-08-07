@@ -11,6 +11,7 @@
 #include <QtCore/QBuffer>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDataStream>
+#include <QtCore/QDateTime>
 #include <QtCore/QFile>
 #include <QtCore/QHash>
 #include <QtCore/QMutex>
@@ -20,9 +21,75 @@
 #include <QtCore/QTimer>
 #include <QtCore/QWaitCondition>
 #include <iostream>
+#include <string>
 #include <vector>
 
 class QBufferedFileWriter;
+
+////////////////////////////////////////////////////////////
+// RawDataHeader
+////////////////////////////////////////////////////////////
+class RawDataHeader {
+   public:
+    RawDataHeader();
+    RawDataHeader(const char *runName, uint64_t runNumber, const QDateTime &startTime, const char *comment);
+    ~RawDataHeader();
+
+    void setRunName(const QString &runName);
+    void setRunName(const std::string &runName);
+    void setRunName(const char *runName);
+    void setRunNumber(uint64_t runNumber);
+    void setStartTime(uint64_t startTime);
+    void setStartTime(const QDateTime &startTime);
+    void setComment(const QString &comment);
+    void setComment(const std::string &comment);
+    void setComment(const char *comment);
+
+    QString getRunName() const;
+    uint64_t getRunNumber() const;
+    uint64_t getStartTime() const;
+    QString getComment() const;
+
+    QByteArray toByteArray() const;
+
+   private:
+    uint64_t header =
+        0x4000000000000008;  // 8 bytes (0x4000000000000008) (0x4 for format, 0x8 for header size in words)
+    QString runName;         // within 8 bytes -> 8 bytes when serialized (1 word)
+    uint64_t runNumber;      // 8 bytes (1 word)
+    uint64_t startTime;      // unix timestamp, 8 bytes (1 word)
+    QString comment;         // within 40 bytes -> 40 bytes when serialized (5 words)
+};
+
+////////////////////////////////////////////////////////////
+// RawDataEnder
+////////////////////////////////////////////////////////////
+class RawDataEnder {
+   public:
+    RawDataEnder();
+    RawDataEnder(const QDateTime &endTime, const char *comment);
+    ~RawDataEnder();
+
+    void setEndTime(uint64_t endTime);
+    void setEndTime(const QDateTime &endTime);
+    void setComment(const QString &comment);
+    void setComment(const std::string &comment);
+    void setComment(const char *comment);
+
+    uint64_t getEndTime() const;
+    QString getComment() const;
+
+    QByteArray toByteArray() const;
+
+   private:
+    uint64_t header =
+        0x5000000000000006;  // 8 bytes (0x5000000000000006) (0x5 for format, 0x6 for header size in words)
+    uint64_t endTime;        // unix timestamp, 8 bytes (1 word)
+    QString comment;         // within 40 bytes -> 40 bytes when serialized (5 words)
+};
+////////////////////////////////////////////////////////////
+// WriteThread
+////////////////////////////////////////////////////////////
 
 class WriteThread : public QThread {
     Q_OBJECT
