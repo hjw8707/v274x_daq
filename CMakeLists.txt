@@ -9,7 +9,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # 프로젝트 설치 경로 설정
-set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR})
+set(CMAKE_INSTALL_PREFIX $ENV{HOME}/.local)
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # 옵션을 통해 번들 앱 여부를 설정
 option(BUNDLE_APP "Build as a macOS bundle app" OFF)
@@ -151,6 +153,20 @@ target_link_libraries(raw2root PRIVATE v2740 ${ROOT_LIBRARIES})
 
 # raw2root 실행 파일 설치
 install(TARGETS raw2root
+    RUNTIME DESTINATION bin
+)
+#########################################################################
+
+#########################################################################
+# eventBuilder: console application for merging events
+#########################################################################
+# eventBuilder 컴파일 관련 내용 추가
+add_executable(eventBuilder eventBuilder.cxx)
+target_include_directories(eventBuilder PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(eventBuilder PRIVATE v2740 ${ROOT_LIBRARIES})
+
+# raw2root 실행 파일 설치
+install(TARGETS eventBuilder
     RUNTIME DESTINATION bin
 )
 #########################################################################
