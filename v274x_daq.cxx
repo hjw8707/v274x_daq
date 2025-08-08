@@ -12,7 +12,7 @@
 #include "QCAENV2740Single.hxx"  // QCAENV2740 헤더 파일 포함
 
 int main(int argc, char* argv[]) {
-    QLoggingCategory::setFilterRules("*.debug=false");
+    //QLoggingCategory::setFilterRules("*.debug=false");
 
     QApplication app(argc, argv);  // QApplication 객체 생성
     app.setApplicationName("V274X_DAQ");

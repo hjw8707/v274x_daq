@@ -5,6 +5,8 @@
 #include "CAENV2740Event.hxx"
 #include "TFile.h"
 #include "TTree.h"
+#include "RawDataHeader.hxx"
+#include "RawDataEnder.hxx"
 
 class CAENV2740Reader {
    public:
@@ -167,6 +169,10 @@ class CAENV2740Reader {
         int aggregate_counter;
         uint64_t data[10];
 
+        RawDataHeader* header = nullptr;
+        RawDataEnder* ender = nullptr;
+        QTextStream stream(stdout);
+
         int runEvent = 0;
         int j;
         while (inputFile) {
@@ -179,7 +185,7 @@ class CAENV2740Reader {
             flush = (data[0] >> 56) & 0x1;                   // 56 비트 추출
             board_good = (data[0] >> 59) & 0x1;              // 59 비트 추출
             eventType = (data[0] >> 60) & 0xF;               // 60 ~ 63 비트 추출
-            if (aggregate_counter != prev_aggregate_counter + 1) {
+            if (eventType < 3 && aggregate_counter != prev_aggregate_counter + 1) {
                 std::cerr << "Aggregate Counter Error: " << prev_aggregate_counter << " -> " << aggregate_counter
                           << std::endl;
             }  // aggregate_counter validity check
@@ -234,6 +240,22 @@ class CAENV2740Reader {
                         getchar();
                     }
                     break;
+                case 4:  // RawDataHeader (nWords = 8)
+                    if (flagVerbose) std::cout << "RawDataHeader" << std::endl;
+                    for (int i = 0; i < nWords; i++) {  // no endian change
+                        inputFile.read(reinterpret_cast<char *>(&data[i]), sizeof(data[i]));
+                    }
+                    header = new RawDataHeader(data);
+                    header->getHeaderInfo(stream);
+                    stream.flush();
+                    break;
+                case 5:  // RawDataEnder (nWords = 6)
+                    if (flagVerbose) std::cout << "RawDataEnder" << std::endl;
+                    for (int i = 0; i < nWords; i++) {  // no endian change
+                        inputFile.read(reinterpret_cast<char *>(&data[i]), sizeof(data[i]));
+                    }
+                    ender = new RawDataEnder(data);
+                    break;
                 default:
                     if (flagVerbose) {
                         std::cerr << "Unknown Event Code: " << eventType << std::endl;
@@ -251,6 +273,12 @@ class CAENV2740Reader {
             }
         }
         std::cout << "Event Count: " << eventCount << std::endl;
+        if (header) delete header;
+        if (ender) {
+            ender->getEnderInfo(stream);
+            stream.flush();
+            delete ender;
+        }
     }
 };
 
@@ -260,9 +288,11 @@ int main(int argc, char *argv[]) {
         std::cerr << "사용법: ./readRaw <파일 이름> [-c] [-o <출력 파일 이름>]" << std::endl;
         std::cerr << "  -c: 인코딩된 이벤트를 읽습니다." << std::endl;
         std::cerr << "  -o <출력 파일 이름>: 출력 파일 이름을 지정합니다." << std::endl;
+        std::cerr << "  -v: 상세 출력을 활성화합니다." << std::endl;
         return 1;
     }
     bool isCodedEvent = false;
+    bool flagVerbose = false;
     std::string outputFile = "";
     for (int i = 2; i < argc; i++) {
         if (std::string(argv[i]) == "-c") {
@@ -275,6 +305,8 @@ int main(int argc, char *argv[]) {
                 std::cerr << "출력 파일 이름이 지정되지 않았습니다." << std::endl;
                 return 1;
             }
+        } else if (std::string(argv[i]) == "-v") {
+            flagVerbose = true;
         }
     }
     if (outputFile.empty()) {
@@ -290,7 +322,7 @@ int main(int argc, char *argv[]) {
     CAENV2740Reader reader;  // CAENV2740Reader 객체 생성
     reader.InitInput(argv[1]);
     reader.InitOutput(outputFile);
-    // reader.SetVerbose(true);
+    reader.SetVerbose(flagVerbose);
 
     if (isCodedEvent)
         reader.ReadCAENV2740CodedEvent();

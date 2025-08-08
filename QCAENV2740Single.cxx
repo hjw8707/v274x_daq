@@ -1,5 +1,8 @@
 #include "QCAENV2740Single.hxx"
 
+#include "RawDataEnder.hxx"
+#include "RawDataHeader.hxx"
+
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
@@ -82,7 +85,7 @@ void DataAcquisitionThread::run() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // QCAENV2740
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-QCAENV2740Single::QCAENV2740Single(QWidget *parent) : verbose(false), currentStatus(-1), QMainWindow(parent) {
+QCAENV2740Single::QCAENV2740Single(QWidget *parent) : verbose(false), currentStatus(-1), QMainWindow(parent), nosave(false) {
     qDebug() << "QCAENV2740Single constructor";
     setWindowTitle("V274X DAQ");
     setWindowIcon(QIcon("icons/dig_v2740.png"));
@@ -442,10 +445,12 @@ void QCAENV2740Single::loadParameterFromFile(const QString &parFile) {
 }
 
 void QCAENV2740Single::viewParameter() {
-    if (par->getConfig().empty()) {
+    if (parameterLineEdit->text().isEmpty()) {
         QMessageBox::warning(this, "Warning", "No parameter file loaded.");
         return;
     }
+
+    par->loadConfigFile(parameterLineEdit->text().toStdString());
     QWidget *window = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout();
     QTreeWidget *treeWidget = new QTreeWidget();
@@ -511,7 +516,15 @@ void QCAENV2740Single::loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWi
     }
 }
 
-void QCAENV2740Single::applyParameter() { daq->loadParameter(*par); }
+void QCAENV2740Single::applyParameter() {
+    if (parameterLineEdit->text().isEmpty()) {
+        QMessageBox::warning(this, "Warning", "No parameter file loaded.");
+        return;
+    }
+
+    par->loadConfigFile(parameterLineEdit->text().toStdString());
+    daq->loadParameter(*par);
+}
 
 void QCAENV2740Single::runNSDAQ() {
     if (currentStatus != 1) return;
@@ -526,6 +539,7 @@ void QCAENV2740Single::runDAQ() {
     int runNumber = runNumberSpinBox->value();
     std::string fileName = dataDirectoryLineEdit->text().toStdString() + "/" + runName +
                            QString("%1").arg(runNumber, 4, 10, QChar('0')).toStdString() + ".dat";
+    qDebug() << "QCAENV2740Single::runDAQ() fileName: " << QString::fromStdString(fileName);
     std::ifstream fileCheck(fileName);
     if (!nosave && fileCheck.is_open()) {
         QMessageBox::StandardButton reply;
@@ -540,13 +554,18 @@ void QCAENV2740Single::runDAQ() {
     applySettings();
 
     if (nosave) {
+        qDebug() << "QCAENV2740Single::runDAQ() nosave: " << nosave;
         filenameLabel->setText("Not saving to file");
     } else {
+        qDebug() << "QCAENV2740Single::runDAQ() save: " << QString::fromStdString(fileName);
         filenameLabel->setText("Saving to file: " + QFileInfo(QString::fromStdString(fileName)).absoluteFilePath());
         // fout.open(fileName, std::ios::binary);
-        writer->setFileName("v274x", QString::fromStdString(fileName));
+        writer->setFileName(bufferName, QString::fromStdString(fileName));
     }
     fileSizeLabel->setText("File Size: - kBytes");
+
+    writer->setFileSave(!nosave);
+    writer->start();
 
     ////////////////////////////////////////////////////////////////////////////////
     // RawDataHeader 설정
@@ -558,9 +577,6 @@ void QCAENV2740Single::runDAQ() {
     RawDataHeader header(runName.c_str(), runNumber, QDateTime::currentDateTime(), comment);
     writer->writeToAllBuffers(header.toByteArray());
     ////////////////////////////////////////////////////////////////////////////////
-
-    writer->setFileSave(!nosave);
-    writer->start();
 
     // 측정 시간이 0보다 큰 경우 QTimer 설정
     if (measurementTimeSpinBox->value() > 0) connect(timer, &QTimer::timeout, this, &QCAENV2740Single::stopDAQ);

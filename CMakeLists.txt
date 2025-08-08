@@ -53,6 +53,8 @@ set(V2740_SOURCES
     QOnlineMonitor.cxx
     QOnlineMonitorWindow.cxx
     QBufferedFileWriter.cxx
+    RawDataHeader.cxx
+    RawDataEnder.cxx
     # 필요한 다른 소스 파일들을 여기에 추가하세요
 )
 #########################################################################
@@ -149,7 +151,7 @@ install(TARGETS v274xm_daq
 # raw2root 컴파일 관련 내용 추가
 add_executable(raw2root raw2root.cxx)
 target_include_directories(raw2root PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(raw2root PRIVATE v2740 ${ROOT_LIBRARIES})
+target_link_libraries(raw2root PRIVATE v2740 ${ROOT_LIBRARIES} ${QT_LIBRARIES})
 
 # raw2root 실행 파일 설치
 install(TARGETS raw2root
