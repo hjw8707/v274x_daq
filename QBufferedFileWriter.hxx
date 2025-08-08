@@ -33,6 +33,7 @@ class RawDataHeader {
    public:
     RawDataHeader();
     RawDataHeader(const char *runName, uint64_t runNumber, const QDateTime &startTime, const char *comment);
+    RawDataHeader(const QString &runName, uint64_t runNumber, const QDateTime &startTime, const QString &comment);
     ~RawDataHeader();
 
     void setRunName(const QString &runName);
@@ -68,6 +69,7 @@ class RawDataEnder {
    public:
     RawDataEnder();
     RawDataEnder(const QDateTime &endTime, const char *comment);
+    RawDataEnder(const QDateTime &endTime, const QString &comment);
     ~RawDataEnder();
 
     void setEndTime(uint64_t endTime);
@@ -161,6 +163,8 @@ class QBufferedFileWriter : public QObject {
     //////////////////////////////////////////////////////////////////////
     void write(const QString &bufferName, const QByteArray &data);
     void write(const QString &bufferName, const char *data, size_t size);
+    void writeToAllBuffers(const QByteArray &data);
+    void writeToAllBuffers(const char *data, size_t size);
     void flush();
     void flush(const QString &bufferName);
     //////////////////////////////////////////////////////////////////////

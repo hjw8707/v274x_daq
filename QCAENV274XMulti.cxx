@@ -1,9 +1,9 @@
 #include "QCAENV274XMulti.hxx"
 
-#include <QtGui/QCloseEvent>
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
+#include <QtGui/QCloseEvent>
 #include <QtGui/QIcon>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QCheckBox>
@@ -47,6 +47,8 @@ QCAENV274XMulti::QCAENV274XMulti(QWidget *parent)
     // GUI 초기화
     initUI();
     updateStatus(false);  // 초기 상태는 멈춤
+
+    loadInitialSettings(SettingsManager::getInstance());
 }
 
 QCAENV274XMulti::~QCAENV274XMulti() {
@@ -56,6 +58,8 @@ QCAENV274XMulti::~QCAENV274XMulti() {
     if (updateTimer) delete updateTimer;
     if (elapsedTimer) delete elapsedTimer;
     if (measurementTimer) delete measurementTimer;
+
+    saveInitialSettings(SettingsManager::getInstance());
 }
 
 void QCAENV274XMulti::initUI() {
@@ -360,3 +364,19 @@ void QCAENV274XMulti::updateStatus(bool running) {
 void QCAENV274XMulti::updateBoardBps(int board, float bps) { boardBps[board] = bps; }
 
 void QCAENV274XMulti::updateBoardTotalBytes(int board, uint64_t bytes) { boardTotalBytes[board] = bytes; }
+
+void QCAENV274XMulti::loadInitialSettings(SettingsManager &settings) {
+    qDebug() << "QCAENV274XMulti::loadInitialSettings()";
+    settings.loadSettings();
+    if (!settings.getIPAddress().isEmpty()) ipLineEdit->setText(settings.getIPAddress());
+    if (!settings.getRunName().isEmpty()) runNameLineEdit->setText(settings.getRunName());
+    if (settings.getRunNumber() > -1) runNumberSpinBox->setValue(settings.getRunNumber());
+}
+
+void QCAENV274XMulti::saveInitialSettings(SettingsManager &settings) {
+    qDebug() << "QCAENV274XMulti::saveInitialSettings()";
+    settings.setIPAddress(ipLineEdit->text());
+    settings.setRunName(runNameLineEdit->text());
+    settings.setRunNumber(runNumberSpinBox->value());
+    settings.saveSettings();
+}

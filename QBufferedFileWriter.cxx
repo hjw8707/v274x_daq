@@ -8,6 +8,9 @@
 RawDataHeader::RawDataHeader() : runName(""), runNumber(0), startTime(0), comment("") {}
 RawDataHeader::RawDataHeader(const char *runName, uint64_t runNumber, const QDateTime &startTime, const char *comment)
     : runName(runName), runNumber(runNumber), startTime(startTime.toSecsSinceEpoch()), comment(comment) {}
+RawDataHeader::RawDataHeader(const QString &runName, uint64_t runNumber, const QDateTime &startTime,
+                             const QString &comment)
+    : runName(runName), runNumber(runNumber), startTime(startTime.toSecsSinceEpoch()), comment(comment) {}
 RawDataHeader::~RawDataHeader() {}
 
 void RawDataHeader::setRunName(const QString &runName) { this->runName = runName; }
@@ -39,6 +42,8 @@ QByteArray RawDataHeader::toByteArray() const {
 ////////////////////////////////////////////////////////////
 RawDataEnder::RawDataEnder() : endTime(0), comment("") {}
 RawDataEnder::RawDataEnder(const QDateTime &endTime, const char *comment)
+    : endTime(endTime.toSecsSinceEpoch()), comment(comment) {}
+RawDataEnder::RawDataEnder(const QDateTime &endTime, const QString &comment)
     : endTime(endTime.toSecsSinceEpoch()), comment(comment) {}
 RawDataEnder::~RawDataEnder() {}
 
@@ -274,6 +279,14 @@ void QBufferedFileWriter::write(const QString &bufferName, const QByteArray &dat
 void QBufferedFileWriter::write(const QString &bufferName, const char *data, size_t size) {
     QWriteLocker locker(locks[bufferName]);
     buffers[bufferName]->write(data, size);
+}
+
+void QBufferedFileWriter::writeToAllBuffers(const QByteArray &data) {
+    for (const auto &bufferName : bufferNames) write(bufferName, data);
+}
+
+void QBufferedFileWriter::writeToAllBuffers(const char *data, size_t size) {
+    for (const auto &bufferName : bufferNames) write(bufferName, data, size);
 }
 
 void QBufferedFileWriter::flush() {

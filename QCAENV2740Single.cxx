@@ -9,6 +9,7 @@
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QInputDialog>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMainWindow>
@@ -65,12 +66,11 @@ void DataAcquisitionThread::run() {
         totalBytes += size;  // 전송된 바이트 수 누적
         // 초당 전송된 바이트 수 업데이트
         if (timer.elapsed() >= 1000) {
-            totalTime += timer.elapsed();  // 1초마다
-            Q_EMIT updateBytesPerSecond(totalBytes * 1000. /
-                                        timer.elapsed());  // 시그널 전송
-            Q_EMIT updateMeasurementTime(totalTime);       // 측정 시간 업데이트
-            totalBytes = 0;   // 카운터 초기화 // 측정 시간 업데이트
-            timer.restart();  // 타이머 재시작
+            totalTime += timer.elapsed();                                       // 1초마다
+            Q_EMIT updateBytesPerSecond(totalBytes * 1000. / timer.elapsed());  // 시그널 전송
+            Q_EMIT updateMeasurementTime(totalTime);                            // 측정 시간 업데이트
+            totalBytes = 0;                                                     // 카운터 초기화 // 측정 시간 업데이트
+            timer.restart();                                                    // 타이머 재시작
         }
     }
     totalTime += timer.elapsed();
@@ -82,25 +82,28 @@ void DataAcquisitionThread::run() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // QCAENV2740
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-QCAENV2740Single::QCAENV2740Single(QWidget *parent)
-    : verbose(false), currentStatus(-1), QMainWindow(parent) {
+QCAENV2740Single::QCAENV2740Single(QWidget *parent) : verbose(false), currentStatus(-1), QMainWindow(parent) {
     qDebug() << "QCAENV2740Single constructor";
     setWindowTitle("V274X DAQ");
     setWindowIcon(QIcon("icons/dig_v2740.png"));
 
     timer = new QTimer(this);
     verbose = true;
+    bufferName = "v274x";
+    headerComment = "header";
+    enderComment = "ender";
+
     writer = QBufferedFileWriter::getInstance();
     writer->setShmSave(true);
     // writer->setShmSave(false);
-    writer->addBuffer("v274x");
+    writer->addBuffer(bufferName);
 
     //  CAENV2740 초기화
     initDAQ();
     // GUI 초기화
     initUI();
 
-    loadSettings(SettingsManager::getInstance());
+    loadInitialSettings(SettingsManager::getInstance());
 }
 
 QCAENV2740Single::~QCAENV2740Single() {
@@ -119,7 +122,7 @@ QCAENV2740Single::~QCAENV2740Single() {
         timer = nullptr;
     }
     // SettingsManager에 마지막 설정 저장
-    saveSettings(SettingsManager::getInstance());
+    saveInitialSettings(SettingsManager::getInstance());
 }
 
 void QCAENV2740Single::initUI() {
@@ -156,18 +159,12 @@ void QCAENV2740Single::initUI() {
     connectLayout->addWidget(exitButton);
     //  ... 추가 GUI 구성 ...
 
-    connect(connectButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::connectDAQ);
-    connect(clearButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::clearDAQ);
-    connect(resetButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::resetDAQ);
-    connect(rebootButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::rebootDAQ);
-    connect(disconnectButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::disconnectDAQ);
-    connect(exitButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::exitDAQ);
+    connect(connectButton, &QPushButton::clicked, this, &QCAENV2740Single::connectDAQ);
+    connect(clearButton, &QPushButton::clicked, this, &QCAENV2740Single::clearDAQ);
+    connect(resetButton, &QPushButton::clicked, this, &QCAENV2740Single::resetDAQ);
+    connect(rebootButton, &QPushButton::clicked, this, &QCAENV2740Single::rebootDAQ);
+    connect(disconnectButton, &QPushButton::clicked, this, &QCAENV2740Single::disconnectDAQ);
+    connect(exitButton, &QPushButton::clicked, this, &QCAENV2740Single::exitDAQ);
     //////////////////////////////////////////////////////////////
 
     //////////////////////////////////////////////////////////////
@@ -188,12 +185,9 @@ void QCAENV2740Single::initUI() {
     parameterLayout->addWidget(viewButton);
     parameterLayout->addWidget(applyButton);
 
-    connect(loadButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::loadParameter);
-    connect(viewButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::viewParameter);
-    connect(applyButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::applyParameter);
+    connect(loadButton, &QPushButton::clicked, this, &QCAENV2740Single::loadParameter);
+    connect(viewButton, &QPushButton::clicked, this, &QCAENV2740Single::viewParameter);
+    connect(applyButton, &QPushButton::clicked, this, &QCAENV2740Single::applyParameter);
     //////////////////////////////////////////////////////////////
 
     //////////////////////////////////////////////////////////////
@@ -241,10 +235,8 @@ void QCAENV2740Single::initUI() {
     runLayout->addWidget(stopButton);
 
     connect(runButton, &QPushButton::clicked, this, &QCAENV2740Single::runDAQ);
-    connect(runNSButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::runNSDAQ);
-    connect(stopButton, &QPushButton::clicked, this,
-            &QCAENV2740Single::stopDAQ);
+    connect(runNSButton, &QPushButton::clicked, this, &QCAENV2740Single::runNSDAQ);
+    connect(stopButton, &QPushButton::clicked, this, &QCAENV2740Single::stopDAQ);
     //////////////////////////////////////////////////////////////
 
     ///////////////////////////////////////////////////////////
@@ -264,8 +256,7 @@ void QCAENV2740Single::initUI() {
     digitizerLayout->addLayout(digitizerSettingsLayout);
 
     digitizerCHEnableGroupBox = new QGroupBox("CH Enable");
-    QVBoxLayout *digitizerCHEnableLayout =
-        new QVBoxLayout(digitizerCHEnableGroupBox);
+    QVBoxLayout *digitizerCHEnableLayout = new QVBoxLayout(digitizerCHEnableGroupBox);
     digitizerLayout->addWidget(digitizerCHEnableGroupBox);
 
     for (int i = 0; i < 4; i++) {
@@ -280,8 +271,7 @@ void QCAENV2740Single::initUI() {
     }
 
     triggerSettingsGroupBox = new QGroupBox("Trigger Settings");
-    QHBoxLayout *triggerSettingsLayout =
-        new QHBoxLayout(triggerSettingsGroupBox);
+    QHBoxLayout *triggerSettingsLayout = new QHBoxLayout(triggerSettingsGroupBox);
     digitizerLayout->addWidget(triggerSettingsGroupBox);
 
     QLabel *startSourceLabel = new QLabel("Start Source:");
@@ -318,13 +308,12 @@ void QCAENV2740Single::initUI() {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
     connect(applySettingsCheckBox, &QCheckBox::checkStateChanged, this, [this](Qt::CheckState state) {
 #else
-    connect(applySettingsCheckBox, &QCheckBox::stateChanged, this,
-            [this](int state) {
+    connect(applySettingsCheckBox, &QCheckBox::stateChanged, this, [this](int state) {
 #endif
-                bool isChecked = state == Qt::Checked;
-                digitizerCHEnableGroupBox->setEnabled(isChecked);
-                triggerSettingsGroupBox->setEnabled(isChecked);
-            });
+        bool isChecked = state == Qt::Checked;
+        digitizerCHEnableGroupBox->setEnabled(isChecked);
+        triggerSettingsGroupBox->setEnabled(isChecked);
+    });
 
     //////////////////////////////////////////////////////////////
     // Status Layout
@@ -350,20 +339,14 @@ void QCAENV2740Single::initUI() {
     statusLayout->addWidget(bpsNameLabel);
     statusLayout->addWidget(bytesPerSecondLabel);
     statusLayout->addWidget(bpsProgressBar);
-    connect(this, &QCAENV2740Single::statusUpdated, statusLabel,
-            &QLabel::setText);
-    connect(thread, &DataAcquisitionThread::updateMeasurementTime, this,
-            [this](qint64 time) {
-                elapsedTimeLabel->setText(
-                    QString("Elapsed Time: %1 s").arg(time / 1000., 0, 'f', 1));
-            });
-    connect(thread, &DataAcquisitionThread::updateBytesPerSecond, this,
-            [this](float bps) {
-                bytesPerSecondLabel->setText(
-                    QString("%1 kB/s").arg(bps / 1024, 0, 'f', 1));
-                bpsProgressBar->setValue(
-                    static_cast<int>(bps / 1024));  // 게이지 업데이트
-            });
+    connect(this, &QCAENV2740Single::statusUpdated, statusLabel, &QLabel::setText);
+    connect(thread, &DataAcquisitionThread::updateMeasurementTime, this, [this](qint64 time) {
+        elapsedTimeLabel->setText(QString("Elapsed Time: %1 s").arg(time / 1000., 0, 'f', 1));
+    });
+    connect(thread, &DataAcquisitionThread::updateBytesPerSecond, this, [this](float bps) {
+        bytesPerSecondLabel->setText(QString("%1 kB/s").arg(bps / 1024, 0, 'f', 1));
+        bpsProgressBar->setValue(static_cast<int>(bps / 1024));  // 게이지 업데이트
+    });
 
     QHBoxLayout *statusLayout2 = new QHBoxLayout();
     layout->addLayout(statusLayout2);
@@ -387,11 +370,8 @@ void QCAENV2740Single::initDAQ() {
 }
 
 void QCAENV2740Single::connectDAQ() {
-    qDebug()
-        << "QCAENV2740Single::connectDAQ() before connection, currentStatus: "
-        << currentStatus;
-    if (currentStatus != 0)
-        return;  // 현재 상태가 0(Disconnected)이 아니면 실행하지 않음
+    qDebug() << "QCAENV2740Single::connectDAQ() before connection, currentStatus: " << currentStatus;
+    if (currentStatus != 0) return;  // 현재 상태가 0(Disconnected)이 아니면 실행하지 않음
     try {
         daq->connect("dig2://" + ipLineEdit->text().toStdString());
     } catch (const std::exception &e) {
@@ -399,9 +379,7 @@ void QCAENV2740Single::connectDAQ() {
         return;
     }
     setStatus(1);
-    qDebug()
-        << "QCAENV2740Single::connectDAQ() after connection, currentStatus: "
-        << currentStatus;
+    qDebug() << "QCAENV2740Single::connectDAQ() after connection, currentStatus: " << currentStatus;
 }
 
 void QCAENV2740Single::clearDAQ() {
@@ -431,23 +409,20 @@ void QCAENV2740Single::disconnectDAQ() {
 }
 
 void QCAENV2740Single::exitDAQ() {
-    qDebug() << "QCAENV2740Single::exitDAQ() before exit, currentStatus: "
-             << currentStatus;
+    qDebug() << "QCAENV2740Single::exitDAQ() before exit, currentStatus: " << currentStatus;
     if (currentStatus != 0) daq->close();
     this->close();
 }
 
 void QCAENV2740Single::loadParameter() {
     // 파일 다이얼로그를 열어 파일 경로 선택
-    QString filePath = QFileDialog::getOpenFileName(
-        this, "Select Parameter File", "",
-        "YAML Files (*.yml *.yaml);;JSON Files (*.json)");
+    QString filePath = QFileDialog::getOpenFileName(this, "Select Parameter File", "",
+                                                    "YAML Files (*.yml *.yaml);;JSON Files (*.json)");
     if (!filePath.isEmpty()) {
         try {
             par->loadConfigFile(filePath.toStdString());
         } catch (const std::exception &e) {
-            QMessageBox::critical(this, "Error",
-                                  "파일이 적절한 yaml 형식이 아닙니다.");
+            QMessageBox::critical(this, "Error", "파일이 적절한 yaml 형식이 아닙니다.");
             filePath = "";
         }
         parameterLineEdit->setText(filePath);
@@ -459,8 +434,7 @@ void QCAENV2740Single::loadParameterFromFile(const QString &parFile) {
     try {
         par->loadConfigFile(parFile.toStdString());
     } catch (const std::exception &e) {
-        QMessageBox::critical(this, "Error",
-                              "파일이 적절한 yaml 형식이 아닙니다.");
+        QMessageBox::critical(this, "Error", "파일이 적절한 yaml 형식이 아닙니다.");
         filePath = "";
     }
     parameterLineEdit->setText(filePath);
@@ -485,70 +459,52 @@ void QCAENV2740Single::viewParameter() {
     window->show();
 }
 
-void QCAENV2740Single::loadYamlToTreeWidget(ryml::ConstNodeRef rootNode,
-                                            QTreeWidget *treeWidget) {
+void QCAENV2740Single::loadYamlToTreeWidget(ryml::ConstNodeRef rootNode, QTreeWidget *treeWidget) {
     for (const auto &node : rootNode) {
         QTreeWidgetItem *item = new QTreeWidgetItem(
-            treeWidget, QStringList()
-                            << QString::fromLocal8Bit(node.key().data(),
-                                                      node.key().size())
-                            << (node.has_val()
-                                    ? QString::fromLocal8Bit(node.val().data(),
-                                                             node.val().size())
-                                    : ""));
+            treeWidget,
+            QStringList() << QString::fromLocal8Bit(node.key().data(), node.key().size())
+                          << (node.has_val() ? QString::fromLocal8Bit(node.val().data(), node.val().size()) : ""));
         if (node.is_map()) {
             for (const auto &subNode : node) {
                 QString value;
                 if (subNode.has_val()) {
-                    value = QString::fromLocal8Bit(subNode.val().data(),
-                                                   subNode.val().size());
+                    value = QString::fromLocal8Bit(subNode.val().data(), subNode.val().size());
                 } else if (subNode.is_seq()) {
                     value = "[";
                     for (const auto &subSubNode : subNode) {
-                        value +=
-                            QString::fromLocal8Bit(subSubNode.val().data(),
-                                                   subSubNode.val().size()) +
-                            ",";
+                        value += QString::fromLocal8Bit(subSubNode.val().data(), subSubNode.val().size()) + ",";
                     }
                     value = value.left(value.length() - 1) + "]";
                 } else {
                     value = "";
                 }
                 QTreeWidgetItem *subItem = new QTreeWidgetItem(
-                    item, QStringList()
-                              << QString::fromLocal8Bit(subNode.key().data(),
-                                                        subNode.key().size())
-                              << value);
+                    item, QStringList() << QString::fromLocal8Bit(subNode.key().data(), subNode.key().size()) << value);
             }
         }
         if (node.is_seq()) {
             for (const auto &subNode : node) {
                 std::string number;
                 subNode["number"] >> number;
-                QTreeWidgetItem *subItem = new QTreeWidgetItem(
-                    item, QStringList() << QString::fromStdString(number));
+                QTreeWidgetItem *subItem = new QTreeWidgetItem(item, QStringList() << QString::fromStdString(number));
                 for (const auto &subSubNode : subNode) {
                     QString value;
                     if (subNode.has_val()) {
-                        value = QString::fromLocal8Bit(subNode.val().data(),
-                                                       subNode.val().size());
+                        value = QString::fromLocal8Bit(subNode.val().data(), subNode.val().size());
                     } else if (subNode.is_seq()) {
                         value = "[";
                         for (const auto &subSubNode : subNode) {
-                            value += QString::fromLocal8Bit(
-                                         subSubNode.val().data(),
-                                         subSubNode.val().size()) +
-                                     ",";
+                            value += QString::fromLocal8Bit(subSubNode.val().data(), subSubNode.val().size()) + ",";
                         }
                         value = value.left(value.length() - 1) + "]";
                     } else {
                         value = "";
                     }
                     QTreeWidgetItem *subSubItem = new QTreeWidgetItem(
-                        subItem, QStringList() << QString::fromLocal8Bit(
-                                                      subSubNode.key().data(),
-                                                      subSubNode.key().size())
-                                               << value);
+                        subItem, QStringList()
+                                     << QString::fromLocal8Bit(subSubNode.key().data(), subSubNode.key().size())
+                                     << value);
                 }
             }
         }
@@ -564,24 +520,18 @@ void QCAENV2740Single::runNSDAQ() {
 }
 
 void QCAENV2740Single::runDAQ() {
-    qDebug() << "QCAENV2740Single::runDAQ() before run, currentStatus: "
-             << currentStatus;
-    if (currentStatus != 1)
-        return;  // 현재 상태가 1(Stopped)이 아니면 실행하지 않음
-    std::string runName = runNameLineEdit->text().isEmpty()
-                              ? "run"
-                              : runNameLineEdit->text().toStdString();
+    qDebug() << "QCAENV2740Single::runDAQ() before run, currentStatus: " << currentStatus;
+    if (currentStatus != 1) return;  // 현재 상태가 1(Stopped)이 아니면 실행하지 않음
+    std::string runName = runNameLineEdit->text().isEmpty() ? "run" : runNameLineEdit->text().toStdString();
     int runNumber = runNumberSpinBox->value();
-    std::string fileName =
-        dataDirectoryLineEdit->text().toStdString() + "/" + runName +
-        QString("%1").arg(runNumber, 4, 10, QChar('0')).toStdString() + ".dat";
+    std::string fileName = dataDirectoryLineEdit->text().toStdString() + "/" + runName +
+                           QString("%1").arg(runNumber, 4, 10, QChar('0')).toStdString() + ".dat";
     std::ifstream fileCheck(fileName);
     if (!nosave && fileCheck.is_open()) {
         QMessageBox::StandardButton reply;
         reply = QMessageBox::question(
             this, "파일 존재 확인",
-            QString("파일 %1이 이미 존재합니다. 덮어씌우시겠습니까?")
-                .arg(QString::fromStdString(fileName)),
+            QString("파일 %1이 이미 존재합니다. 덮어씌우시겠습니까?").arg(QString::fromStdString(fileName)),
             QMessageBox::Yes | QMessageBox::No);
         if (reply == QMessageBox::No) {
             return;
@@ -592,25 +542,33 @@ void QCAENV2740Single::runDAQ() {
     if (nosave) {
         filenameLabel->setText("Not saving to file");
     } else {
-        filenameLabel->setText(
-            "Saving to file: " +
-            QFileInfo(QString::fromStdString(fileName)).absoluteFilePath());
+        filenameLabel->setText("Saving to file: " + QFileInfo(QString::fromStdString(fileName)).absoluteFilePath());
         // fout.open(fileName, std::ios::binary);
         writer->setFileName("v274x", QString::fromStdString(fileName));
     }
     fileSizeLabel->setText("File Size: - kBytes");
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // RawDataHeader 설정
+    QString comment = QInputDialog::getText(this, "Header Comment", "Enter header comment:");
+    if (comment.isEmpty())
+        comment = headerComment;
+    else
+        headerComment = comment;
+    RawDataHeader header(runName.c_str(), runNumber, QDateTime::currentDateTime(), comment);
+    writer->writeToAllBuffers(header.toByteArray());
+    ////////////////////////////////////////////////////////////////////////////////
+
     writer->setFileSave(!nosave);
     writer->start();
 
     // 측정 시간이 0보다 큰 경우 QTimer 설정
-    if (measurementTimeSpinBox->value() > 0)
-        connect(timer, &QTimer::timeout, this, &QCAENV2740Single::stopDAQ);
+    if (measurementTimeSpinBox->value() > 0) connect(timer, &QTimer::timeout, this, &QCAENV2740Single::stopDAQ);
 
     daq->clear();
     daq->armAcquisition();
     daq->startAcquisition();
-    if (measurementTimeSpinBox->value() > 0)
-        timer->start(measurementTimeSpinBox->value() * 1000);  // 밀리초로 변환
+    if (measurementTimeSpinBox->value() > 0) timer->start(measurementTimeSpinBox->value() * 1000);  // 밀리초로 변환
     qDebug() << "QCAENV2740Single::runDAQ()  startAcquisition";
 
     thread->start();
@@ -618,10 +576,8 @@ void QCAENV2740Single::runDAQ() {
 }
 
 void QCAENV2740Single::stopDAQ() {
-    qDebug() << "QCAENV2740Single::stopDAQ() before stop, currentStatus: "
-             << currentStatus;
-    if (currentStatus != 2)
-        return;  // 현재 상태가 2(Running)이 아니면 실행하지 않음
+    qDebug() << "QCAENV2740Single::stopDAQ() before stop, currentStatus: " << currentStatus;
+    if (currentStatus != 2) return;  // 현재 상태가 2(Running)이 아니면 실행하지 않음
     daq->stopAcquisition();
     daq->disarmAcquisition();
     qDebug() << "QCAENV2740Single::stopDAQ() disarmAcquisition";
@@ -629,8 +585,7 @@ void QCAENV2740Single::stopDAQ() {
     thread->quit();
     thread->wait();
 
-    if (autoIncCheckBox->isChecked() && !nosave)
-        runNumberSpinBox->setValue(runNumberSpinBox->value() + 1);
+    if (autoIncCheckBox->isChecked() && !nosave) runNumberSpinBox->setValue(runNumberSpinBox->value() + 1);
     bytesPerSecondLabel->setText("0 Bytes/s");
     bpsProgressBar->setValue(0);
 
@@ -642,6 +597,16 @@ void QCAENV2740Single::stopDAQ() {
     if (timer) {  // 타이머가 존재할 경우 정지
         timer->stop();
     }
+    ////////////////////////////////////////////////////////////////////////////////
+    // RawDataEnder 설정
+    QString comment = QInputDialog::getText(this, "Ender Comment", "Enter ender comment:");
+    if (comment.isEmpty())
+        comment = enderComment;
+    else
+        enderComment = comment;
+    RawDataEnder ender(QDateTime::currentDateTime(), comment);
+    writer->writeToAllBuffers(ender.toByteArray());
+    ////////////////////////////////////////////////////////////////////////////////
     writer->stop();
     nosave = false;
 }
@@ -675,10 +640,8 @@ void QCAENV2740Single::setStatus(int status) {
     stopButton->setEnabled(isRunning);
 
     applySettingsCheckBox->setEnabled(!isRunning && isConnected);
-    digitizerCHEnableGroupBox->setEnabled(applySettingsCheckBox->isChecked() &&
-                                          isConnected && !isRunning);
-    triggerSettingsGroupBox->setEnabled(applySettingsCheckBox->isChecked() &&
-                                        isConnected && !isRunning);
+    digitizerCHEnableGroupBox->setEnabled(applySettingsCheckBox->isChecked() && isConnected && !isRunning);
+    triggerSettingsGroupBox->setEnabled(applySettingsCheckBox->isChecked() && isConnected && !isRunning);
 
     switch (currentStatus) {
         case 0:
@@ -703,26 +666,18 @@ void QCAENV2740Single::setStatus(int status) {
 
 void QCAENV2740Single::applySettings() {
     if (!applySettingsCheckBox->isChecked()) return;
-    for (int i = 0; i < 64; i++)
-        daq->writeChEnable(i, checkBoxes[i]->isChecked());
+    for (int i = 0; i < 64; i++) daq->writeChEnable(i, checkBoxes[i]->isChecked());
 }
 
-void QCAENV2740Single::setRunName(const QString &runName) {
-    runNameLineEdit->setText(runName);
-}
+void QCAENV2740Single::setRunName(const QString &runName) { runNameLineEdit->setText(runName); }
 
-void QCAENV2740Single::setRunNumber(const int &runNumber) {
-    runNumberSpinBox->setValue(runNumber);
-}
+void QCAENV2740Single::setRunNumber(const int &runNumber) { runNumberSpinBox->setValue(runNumber); }
 
-void QCAENV2740Single::loadSettings(SettingsManager &settings) {
+void QCAENV2740Single::loadInitialSettings(SettingsManager &settings) {
     settings.loadSettings();
-    if (!settings.getIPAddress().isEmpty())
-        ipLineEdit->setText(settings.getIPAddress());
-    if (!settings.getParameterFile().isEmpty())
-        parameterLineEdit->setText(settings.getParameterFile());
-    if (!settings.getDataDirectory().isEmpty())
-        dataDirectoryLineEdit->setText(settings.getDataDirectory());
+    if (!settings.getIPAddress().isEmpty()) ipLineEdit->setText(settings.getIPAddress());
+    if (!settings.getParameterFile().isEmpty()) parameterLineEdit->setText(settings.getParameterFile());
+    if (!settings.getDataDirectory().isEmpty()) dataDirectoryLineEdit->setText(settings.getDataDirectory());
     if (!settings.getRunName().isEmpty()) setRunName(settings.getRunName());
     if (settings.getRunNumber() > -1) setRunNumber(settings.getRunNumber());
 
@@ -730,7 +685,7 @@ void QCAENV2740Single::loadSettings(SettingsManager &settings) {
     if (settings.getAutoParameter() && currentStatus == 1) loadParameter();
 }
 
-void QCAENV2740Single::saveSettings(SettingsManager &settings) {
+void QCAENV2740Single::saveInitialSettings(SettingsManager &settings) {
     settings.setIPAddress(ipLineEdit->text());
     settings.setParameterFile(parameterLineEdit->text());
     settings.setDataDirectory(dataDirectoryLineEdit->text());
@@ -740,8 +695,7 @@ void QCAENV2740Single::saveSettings(SettingsManager &settings) {
 }
 
 bool QCAENV2740Single::eventFilter(QObject *obj, QEvent *event) {
-    if (obj == dataDirectoryLineEdit &&
-        event->type() == QEvent::MouseButtonPress) {
+    if (obj == dataDirectoryLineEdit && event->type() == QEvent::MouseButtonPress) {
         QFileDialog dialog(this);
         dialog.setFileMode(QFileDialog::Directory);
         dialog.setOption(QFileDialog::ShowDirsOnly);

@@ -36,7 +36,7 @@ endif()
 
 # 라이브러리 디렉토리 추가
 # (라이브러리 디렉토리를 프로젝트의 라이브러리 경로로 수정)
-link_directories(/usr/local/lib /opt/homebrew/lib ${CMAKE_SOURCE_DIR}/lib)
+link_directories(/usr/local/lib /opt/homebrew/lib ${CMAKE_SOURCE_DIR}/lib ${CMAKE_BUILD_DIR})
 
 # 외부 라이브러리 링크
 # (여기에 실제 라이브러리 이름을 추가)
@@ -189,13 +189,13 @@ install(TARGETS v274xm_mon
 # test: console application for testing
 #########################################################################
 # test 컴파일 관련 내용 추가
-add_executable(test test.cxx)
-target_include_directories(test PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(test PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
+# add_executable(test test.cxx)
+# target_include_directories(test PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+# target_link_libraries(test PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
 
-add_executable(test2 test2.cxx)
-target_include_directories(test2 PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
-target_link_libraries(test2 PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
+# add_executable(test2 test2.cxx)
+# target_include_directories(test2 PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+# target_link_libraries(test2 PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES})
 
 
 # 옵션으로 디버깅 정보 생성

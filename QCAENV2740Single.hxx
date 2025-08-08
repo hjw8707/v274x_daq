@@ -83,8 +83,8 @@ class QCAENV2740Single : public QMainWindow {
     void setRunName(const QString &runName);
     void setRunNumber(const int &runNumber);
 
-    void loadSettings(SettingsManager &settings);
-    void saveSettings(SettingsManager &settings);
+    void loadInitialSettings(SettingsManager &settings);
+    void saveInitialSettings(SettingsManager &settings);
 
    protected:
     bool eventFilter(QObject *obj, QEvent *event) override;
@@ -95,6 +95,9 @@ class QCAENV2740Single : public QMainWindow {
     // QString ipAddress;
     int currentStatus;
     uint32_t prev_aggregate_counter;
+    QString bufferName;
+    QString headerComment;
+    QString enderComment;
 
     CAENV2740 *daq;     // CAENV2740 객체
     CAENV2740Par *par;  // CAENV2740 Parameter 객체

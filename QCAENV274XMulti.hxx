@@ -26,6 +26,7 @@
 #include "CAENV2740Par.hxx"
 #include "QBufferedFileWriter.hxx"
 #include "QCAENV2740.hxx"
+#include "SettingsManager.hxx"
 
 /**
  * @brief This class is the QCAENV274XMulti class.
@@ -37,6 +38,9 @@ class QCAENV274XMulti : public QMainWindow {
    public:
     QCAENV274XMulti(QWidget *parent = nullptr);
     virtual ~QCAENV274XMulti();  // 가상 소멸자 추가
+
+    void loadInitialSettings(SettingsManager &settings);
+    void saveInitialSettings(SettingsManager &settings);
 
    public slots:
     void addDigitizer(const QString &name, const QString &ip);  // default name = digXX
