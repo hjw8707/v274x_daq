@@ -99,6 +99,9 @@ class QCAENV274XMulti : public QMainWindow {
     QPushButton *runButton;
     QPushButton *runNSButton;
     QPushButton *stopButton;
+
+    QString headerComment;
+    QString enderComment;
 };
 
 #endif  // MAINWINDOW_H

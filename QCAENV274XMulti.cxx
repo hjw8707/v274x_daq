@@ -10,6 +10,7 @@
 #include <QtWidgets/QFileDialog>
 #include <QtWidgets/QGroupBox>
 #include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QInputDialog>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMainWindow>
@@ -22,6 +23,9 @@
 #include <QtWidgets/QTreeWidgetItem>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
+
+#include "RawDataEnder.hxx"
+#include "RawDataHeader.hxx"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // QCAENV274XMulti
@@ -245,6 +249,18 @@ void QCAENV274XMulti::run() {
         digitizer->readyDAQ();
     }
     writer->start();
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // RawDataHeader 설정
+    QString comment = QInputDialog::getText(this, "Header Comment", "Enter header comment:");
+    if (comment.isEmpty())
+        comment = headerComment;
+    else
+        headerComment = comment;
+    RawDataHeader header(runName, runNumber, QDateTime::currentDateTime(), comment);
+    writer->writeToAllBuffers(header.toByteArray());
+    ////////////////////////////////////////////////////////////////////////////////
+
     for (QCAENV2740 *digitizer : digitizers) digitizer->runDAQ();
 
     // 측정 시간이 0보다 크면 측정 시간 타이머 시작
@@ -272,6 +288,17 @@ void QCAENV274XMulti::stop() {
 
     if (!nosave && autoIncCheckBox->isChecked()) runNumberSpinBox->setValue(runNumberSpinBox->value() + 1);
     nosave = false;
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // RawDataEnder 설정
+    QString comment = QInputDialog::getText(this, "Ender Comment", "Enter ender comment:");
+    if (comment.isEmpty())
+        comment = enderComment;
+    else
+        enderComment = comment;
+    RawDataEnder ender(QDateTime::currentDateTime(), comment);
+    writer->writeToAllBuffers(ender.toByteArray());
+    ////////////////////////////////////////////////////////////////////////////////
     writer->stop();
 }
 
