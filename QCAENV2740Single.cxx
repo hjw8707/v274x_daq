@@ -1,8 +1,5 @@
 #include "QCAENV2740Single.hxx"
 
-#include "RawDataEnder.hxx"
-#include "RawDataHeader.hxx"
-
 #include <QtCore/QObject>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
@@ -26,6 +23,9 @@
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 #include <fstream>
+
+#include "RawDataEnder.hxx"
+#include "RawDataHeader.hxx"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // DataAcquisitionThread
@@ -85,7 +85,8 @@ void DataAcquisitionThread::run() {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // QCAENV2740
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-QCAENV2740Single::QCAENV2740Single(QWidget *parent) : verbose(false), currentStatus(-1), QMainWindow(parent), nosave(false) {
+QCAENV2740Single::QCAENV2740Single(QWidget *parent)
+    : verbose(false), currentStatus(-1), QMainWindow(parent), nosave(false) {
     qDebug() << "QCAENV2740Single constructor";
     setWindowTitle("V274X DAQ");
     setWindowIcon(QIcon("icons/dig_v2740.png"));
@@ -535,18 +536,17 @@ void QCAENV2740Single::runNSDAQ() {
 void QCAENV2740Single::runDAQ() {
     qDebug() << "QCAENV2740Single::runDAQ() before run, currentStatus: " << currentStatus;
     if (currentStatus != 1) return;  // 현재 상태가 1(Stopped)이 아니면 실행하지 않음
-    std::string runName = runNameLineEdit->text().isEmpty() ? "run" : runNameLineEdit->text().toStdString();
+    QString runName = runNameLineEdit->text().isEmpty() ? "run" : runNameLineEdit->text();
     int runNumber = runNumberSpinBox->value();
-    std::string fileName = dataDirectoryLineEdit->text().toStdString() + "/" + runName +
-                           QString("%1").arg(runNumber, 4, 10, QChar('0')).toStdString() + ".dat";
-    qDebug() << "QCAENV2740Single::runDAQ() fileName: " << QString::fromStdString(fileName);
-    std::ifstream fileCheck(fileName);
+    QString fileName =
+        dataDirectoryLineEdit->text() + "/" + runName + QString("%1").arg(runNumber, 4, 10, QChar('0')) + ".dat";
+    qDebug() << "QCAENV2740Single::runDAQ() fileName: " << fileName;
+    std::ifstream fileCheck(fileName.toStdString());
     if (!nosave && fileCheck.is_open()) {
         QMessageBox::StandardButton reply;
-        reply = QMessageBox::question(
-            this, "파일 존재 확인",
-            QString("파일 %1이 이미 존재합니다. 덮어씌우시겠습니까?").arg(QString::fromStdString(fileName)),
-            QMessageBox::Yes | QMessageBox::No);
+        reply = QMessageBox::question(this, "파일 존재 확인",
+                                      QString("파일 %1이 이미 존재합니다. 덮어씌우시겠습니까?").arg(fileName),
+                                      QMessageBox::Yes | QMessageBox::No);
         if (reply == QMessageBox::No) {
             return;
         }
@@ -557,10 +557,10 @@ void QCAENV2740Single::runDAQ() {
         qDebug() << "QCAENV2740Single::runDAQ() nosave: " << nosave;
         filenameLabel->setText("Not saving to file");
     } else {
-        qDebug() << "QCAENV2740Single::runDAQ() save: " << QString::fromStdString(fileName);
-        filenameLabel->setText("Saving to file: " + QFileInfo(QString::fromStdString(fileName)).absoluteFilePath());
+        qDebug() << "QCAENV2740Single::runDAQ() save: " << fileName;
+        filenameLabel->setText("Saving to file: " + QFileInfo(fileName).absoluteFilePath());
         // fout.open(fileName, std::ios::binary);
-        writer->setFileName(bufferName, QString::fromStdString(fileName));
+        writer->setFileName(bufferName, fileName);
     }
     fileSizeLabel->setText("File Size: - kBytes");
 
@@ -569,13 +569,15 @@ void QCAENV2740Single::runDAQ() {
 
     ////////////////////////////////////////////////////////////////////////////////
     // RawDataHeader 설정
-    QString comment = QInputDialog::getText(this, "Header Comment", "Enter header comment:");
-    if (comment.isEmpty())
-        comment = headerComment;
-    else
-        headerComment = comment;
-    RawDataHeader header(runName.c_str(), runNumber, QDateTime::currentDateTime(), comment);
-    writer->writeToAllBuffers(header.toByteArray());
+    if (!nosave) {
+        QString comment = QInputDialog::getText(this, "Header Comment", "Enter header comment:");
+        if (comment.isEmpty())
+            comment = headerComment;
+        else
+            headerComment = comment;
+        RawDataHeader header(runName, runNumber, QDateTime::currentDateTime(), comment);
+        writer->writeToAllBuffers(header.toByteArray());
+    }
     ////////////////////////////////////////////////////////////////////////////////
 
     // 측정 시간이 0보다 큰 경우 QTimer 설정
@@ -615,13 +617,15 @@ void QCAENV2740Single::stopDAQ() {
     }
     ////////////////////////////////////////////////////////////////////////////////
     // RawDataEnder 설정
-    QString comment = QInputDialog::getText(this, "Ender Comment", "Enter ender comment:");
-    if (comment.isEmpty())
-        comment = enderComment;
-    else
-        enderComment = comment;
-    RawDataEnder ender(QDateTime::currentDateTime(), comment);
-    writer->writeToAllBuffers(ender.toByteArray());
+    if (!nosave) {
+        QString comment = QInputDialog::getText(this, "Ender Comment", "Enter ender comment:");
+        if (comment.isEmpty())
+            comment = enderComment;
+        else
+            enderComment = comment;
+        RawDataEnder ender(QDateTime::currentDateTime(), comment);
+        writer->writeToAllBuffers(ender.toByteArray());
+    }
     ////////////////////////////////////////////////////////////////////////////////
     writer->stop();
     nosave = false;

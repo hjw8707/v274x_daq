@@ -252,13 +252,15 @@ void QCAENV274XMulti::run() {
 
     ////////////////////////////////////////////////////////////////////////////////
     // RawDataHeader 설정
-    QString comment = QInputDialog::getText(this, "Header Comment", "Enter header comment:");
-    if (comment.isEmpty())
-        comment = headerComment;
-    else
-        headerComment = comment;
-    RawDataHeader header(runName, runNumber, QDateTime::currentDateTime(), comment);
-    writer->writeToAllBuffers(header.toByteArray());
+    if (!nosave) {
+        QString comment = QInputDialog::getText(this, "Header Comment", "Enter header comment:");
+        if (comment.isEmpty())
+            comment = headerComment;
+        else
+            headerComment = comment;
+        RawDataHeader header(runName, runNumber, QDateTime::currentDateTime(), comment);
+        writer->writeToAllBuffers(header.toByteArray());
+    }
     ////////////////////////////////////////////////////////////////////////////////
 
     for (QCAENV2740 *digitizer : digitizers) digitizer->runDAQ();
@@ -287,18 +289,19 @@ void QCAENV274XMulti::stop() {
     fileSizeLabel->setText(QString("File Size: %1 kBytes").arg(totalBytes / 1024.0, 0, 'f', 1));
 
     if (!nosave && autoIncCheckBox->isChecked()) runNumberSpinBox->setValue(runNumberSpinBox->value() + 1);
-    nosave = false;
-
     ////////////////////////////////////////////////////////////////////////////////
     // RawDataEnder 설정
-    QString comment = QInputDialog::getText(this, "Ender Comment", "Enter ender comment:");
-    if (comment.isEmpty())
-        comment = enderComment;
-    else
-        enderComment = comment;
-    RawDataEnder ender(QDateTime::currentDateTime(), comment);
-    writer->writeToAllBuffers(ender.toByteArray());
+    if (!nosave) {
+        QString comment = QInputDialog::getText(this, "Ender Comment", "Enter ender comment:");
+        if (comment.isEmpty())
+            comment = enderComment;
+        else
+            enderComment = comment;
+        RawDataEnder ender(QDateTime::currentDateTime(), comment);
+        writer->writeToAllBuffers(ender.toByteArray());
+    }
     ////////////////////////////////////////////////////////////////////////////////
+    nosave = false;
     writer->stop();
 }
 
