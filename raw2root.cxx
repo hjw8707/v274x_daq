@@ -177,7 +177,7 @@ class CAENV2740Reader {
                     mergedEvent.energy.push_back(eventBuffer[j].energy);
                     mergedEvent.energy_short.push_back(eventBuffer[j].energy_short);
                     mergedEvent.flags_low_priority.push_back(eventBuffer[j].flags_low_priority);
-                    mergedEvent.flags_high_priority.push_back(eventBuffer[j].energy_short);
+                    mergedEvent.flags_high_priority.push_back(eventBuffer[j].flags_high_priority);
                     mergedEvent.event_size.push_back(eventBuffer[j].event_size);
                 }
 

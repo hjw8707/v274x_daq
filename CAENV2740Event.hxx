@@ -9,6 +9,11 @@ class CAENV2740Event {
    public:
     CAENV2740Event();
     ~CAENV2740Event();
+    
+    // 복사 생성자
+    CAENV2740Event(const CAENV2740Event& other);
+    // 대입 연산자
+    CAENV2740Event& operator=(const CAENV2740Event& other);
 
     void Serialize(std::ostream& os) const;
     void SerializeWithWave(std::ostream& os) const;

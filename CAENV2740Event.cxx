@@ -22,8 +22,8 @@ CAENV2740Event::CAENV2740Event()
     n_allocated_samples = MAX_NUMBER_OF_SAMPLES;
 }
 CAENV2740Event::~CAENV2740Event() {
-    for (size_t i = 0; i < 2; i++) delete analog_probes[i];
-    for (size_t i = 0; i < 4; i++) delete digital_probes[i];
+    for (size_t i = 0; i < 2; i++) delete[] analog_probes[i];
+    for (size_t i = 0; i < 4; i++) delete[] digital_probes[i];
 }
 
 void CAENV2740Event::Print(std::ostream& os) const {
@@ -50,6 +50,69 @@ void CAENV2740Event::Serialize(std::ostream& os) const {
     os.write(reinterpret_cast<const char*>(&flags_low_priority), sizeof(flags_low_priority));
     os.write(reinterpret_cast<const char*>(&flags_high_priority), sizeof(flags_high_priority));
     os.write(reinterpret_cast<const char*>(&event_size), sizeof(event_size));
+}
+
+// 복사 생성자
+CAENV2740Event::CAENV2740Event(const CAENV2740Event& other)
+    : channel(other.channel),
+      timestamp(other.timestamp),
+      fine_timestamp(other.fine_timestamp),
+      energy(other.energy),
+      energy_short(other.energy_short),
+      flags_low_priority(other.flags_low_priority),
+      flags_high_priority(other.flags_high_priority),
+      event_size(other.event_size),
+      n_samples(other.n_samples),
+      n_allocated_samples(other.n_allocated_samples) {
+    // 동적 할당된 배열들을 깊은 복사
+    for (size_t i = 0; i < 2; i++) {
+        analog_probes_type[i] = other.analog_probes_type[i];
+        analog_probes[i] = new int32_t[MAX_NUMBER_OF_SAMPLES];
+        std::copy(other.analog_probes[i], other.analog_probes[i] + MAX_NUMBER_OF_SAMPLES, analog_probes[i]);
+    }
+    for (size_t i = 0; i < 4; i++) {
+        digital_probes_type[i] = other.digital_probes_type[i];
+        digital_probes[i] = new uint8_t[MAX_NUMBER_OF_SAMPLES];
+        std::copy(other.digital_probes[i], other.digital_probes[i] + MAX_NUMBER_OF_SAMPLES, digital_probes[i]);
+    }
+}
+
+// 대입 연산자
+CAENV2740Event& CAENV2740Event::operator=(const CAENV2740Event& other) {
+    if (this != &other) {  // 자기 자신에 대한 대입 검사
+        // 기존 메모리 해제
+        for (size_t i = 0; i < 2; i++) {
+            delete[] analog_probes[i];
+        }
+        for (size_t i = 0; i < 4; i++) {
+            delete[] digital_probes[i];
+        }
+
+        // 기본 멤버 변수들 복사
+        channel = other.channel;
+        timestamp = other.timestamp;
+        fine_timestamp = other.fine_timestamp;
+        energy = other.energy;
+        energy_short = other.energy_short;
+        flags_low_priority = other.flags_low_priority;
+        flags_high_priority = other.flags_high_priority;
+        event_size = other.event_size;
+        n_samples = other.n_samples;
+        n_allocated_samples = other.n_allocated_samples;
+
+        // 동적 할당된 배열들을 깊은 복사
+        for (size_t i = 0; i < 2; i++) {
+            analog_probes_type[i] = other.analog_probes_type[i];
+            analog_probes[i] = new int32_t[MAX_NUMBER_OF_SAMPLES];
+            std::copy(other.analog_probes[i], other.analog_probes[i] + MAX_NUMBER_OF_SAMPLES, analog_probes[i]);
+        }
+        for (size_t i = 0; i < 4; i++) {
+            digital_probes_type[i] = other.digital_probes_type[i];
+            digital_probes[i] = new uint8_t[MAX_NUMBER_OF_SAMPLES];
+            std::copy(other.digital_probes[i], other.digital_probes[i] + MAX_NUMBER_OF_SAMPLES, digital_probes[i]);
+        }
+    }
+    return *this;
 }
 
 void CAENV2740Event::SerializeWithWave(std::ostream& os) const {
