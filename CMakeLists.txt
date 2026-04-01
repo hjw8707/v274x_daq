@@ -34,13 +34,32 @@ else()
     endif()
 endif()
 
+# include directories
+include_directories(/usr/local/include /opt/homebrew/include $ENV{HOME}/.local/include)
+
 # 라이브러리 디렉토리 추가
 # (라이브러리 디렉토리를 프로젝트의 라이브러리 경로로 수정)
 link_directories(/usr/local/lib /opt/homebrew/lib ${CMAKE_SOURCE_DIR}/lib ${CMAKE_BUILD_DIR})
 
 # 외부 라이브러리 링크
-# (여기에 실제 라이브러리 이름을 추가)
-find_library(CAEN_FELib_PATH NAMES CAEN_FELib PATHS /usr/local/lib)
+# macOS: .dylib만 검색 (Linux ELF .so와 혼동 방지)
+# Linux: .so 검색
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(_caen_suffixes_backup ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    set(CMAKE_FIND_LIBRARY_SUFFIXES .dylib .a)
+    find_library(CAEN_FELib_PATH NAMES CAEN_FELib PATHS /usr/local/lib /opt/homebrew/lib $ENV{HOME}/.local/lib)
+    find_library(RYML_PATH NAMES ryml c4core PATHS /usr/local/lib /opt/homebrew/lib $ENV{HOME}/.local/lib)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${_caen_suffixes_backup})
+else()
+    find_library(CAEN_FELib_PATH NAMES CAEN_FELib PATHS /usr/local/lib $ENV{HOME}/.local/lib)
+    find_library(RYML_PATH NAMES ryml c4core PATHS /usr/local/lib $ENV{HOME}/.local/lib)
+endif()
+if(CAEN_FELib_PATH)
+    set(CAEN_FELIB_LIBRARIES ${CAEN_FELib_PATH})
+endif()
+if(RYML_PATH)
+    set(RYML_LIBRARIES ${RYML_PATH})
+endif()
 
 # v2740 관련 소스 파일 목록 설정
 set(V2740_SOURCES
@@ -70,7 +89,7 @@ set_target_properties(v2740 PROPERTIES
 target_include_directories(v2740 PUBLIC ${ROOT_INCLUDE_DIRS} /usr/local/include /opt/homebrew/include)
 
 # v2740 라이브러리 링크
-target_link_libraries(v2740 PRIVATE ${ROOT_LIBRARIES} ${CAEN_FELib_PATH} ryml c4core ${QT_LIBRARIES})
+target_link_libraries(v2740 PRIVATE ${ROOT_LIBRARIES} ${CAEN_FELIB_LIBRARIES} ${RYML_LIBRARIES} ${QT_LIBRARIES})
 
 # v2740 라이브러리 설치
 install(TARGETS v2740
@@ -141,6 +160,30 @@ target_link_libraries(v274xm_daq PRIVATE v2740 ${QT_LIBRARIES} ${ROOT_LIBRARIES}
 
 # v274xm_daq 실행 파일 설치
 install(TARGETS v274xm_daq
+    RUNTIME DESTINATION bin
+)
+#########################################################################
+
+#########################################################################
+# read_header: console application for reading raw data header
+#########################################################################
+add_executable(read_header read_header.cxx)
+target_include_directories(read_header PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(read_header PRIVATE v2740 ${QT_LIBRARIES})
+
+install(TARGETS read_header
+    RUNTIME DESTINATION bin
+)
+#########################################################################
+
+#########################################################################
+# read_ender: console application for reading raw data ender
+#########################################################################
+add_executable(read_ender read_ender.cxx)
+target_include_directories(read_ender PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(read_ender PRIVATE v2740 ${QT_LIBRARIES})
+
+install(TARGETS read_ender
     RUNTIME DESTINATION bin
 )
 #########################################################################

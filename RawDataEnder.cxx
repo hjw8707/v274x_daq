@@ -1,6 +1,7 @@
 #include "RawDataEnder.hxx"
 
 #include <QtCore/QDataStream>
+#include <QtCore/QDebug>
 #include <QtCore/QIODevice>
 
 RawDataEnder::RawDataEnder() : endTime(0), comment("") {}

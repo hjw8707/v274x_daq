@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 #include "CAENV2740Event.hxx"
@@ -18,6 +19,7 @@ class CAENV2740Reader {
           flagSort(false),
           flagMerge(false),
           timeWindowNs(1000),
+          flagCalib(false),
           file(nullptr),
           tree(nullptr),
           totalEventCount(0) {}
@@ -26,6 +28,13 @@ class CAENV2740Reader {
     void SetVerbose(bool flag) { flagVerbose = flag; }
     bool GetVerbose() { return flagVerbose; }
     void SetSort(bool flag) { flagSort = flag; }
+    void SetCalibrationFile(const std::string &filename) {
+        if (filename.empty()) {
+            flagCalib = false;
+            return;
+        }
+        LoadCalibrationFile(filename);
+    }
     void SetMerge(bool flag, uint64_t windowNs = 1000) {
         flagMerge = flag;
         timeWindowNs = windowNs;
@@ -58,6 +67,7 @@ class CAENV2740Reader {
             tree->Branch("fine_timestamp", &mergedEvent.fine_timestamp);
             tree->Branch("energy", &mergedEvent.energy);
             tree->Branch("energy_short", &mergedEvent.energy_short);
+            if (flagCalib) tree->Branch("cal_energy", &mergedEvent.cal_energy);
             tree->Branch("flags_low_priority", &mergedEvent.flags_low_priority);
             tree->Branch("flags_high_priority", &mergedEvent.flags_high_priority);
             tree->Branch("event_size", &mergedEvent.event_size);
@@ -73,6 +83,7 @@ class CAENV2740Reader {
             tree->Branch("fine_timestamp", &event.fine_timestamp, "fine_timestamp/s");
             tree->Branch("energy", &event.energy, "energy/s");
             tree->Branch("energy_short", &event.energy_short, "energy_short/s");
+            if (flagCalib) tree->Branch("cal_energy", &cal_energy, "cal_energy/D");
             tree->Branch("flags_low_priority", &event.flags_low_priority, "flags_low_priority/s");
             tree->Branch("flags_high_priority", &event.flags_high_priority, "flags_high_priority/s");
             tree->Branch("event_size", &event.event_size, "event_size/i");
@@ -101,12 +112,12 @@ class CAENV2740Reader {
             }
 
             // timestamp 기준으로 정렬
-            std::sort(eventBuffer.begin(), eventBuffer.end(), [](const CAENV2740Event &a, const CAENV2740Event &b) {
-                if (a.timestamp != b.timestamp) {
-                    return a.timestamp < b.timestamp;
+            std::sort(eventBuffer.begin(), eventBuffer.end(), [](const BufferedEvent &a, const BufferedEvent &b) {
+                if (a.event.timestamp != b.event.timestamp) {
+                    return a.event.timestamp < b.event.timestamp;
                 }
                 // timestamp가 같으면 fine_timestamp로 정렬
-                return a.fine_timestamp < b.fine_timestamp;
+                return a.event.fine_timestamp < b.event.fine_timestamp;
             });
 
             if (flagVerbose) {
@@ -115,7 +126,8 @@ class CAENV2740Reader {
 
             // 정렬된 이벤트들을 트리에 저장
             for (const auto &sortedEvent : eventBuffer) {
-                event = sortedEvent;
+                event = sortedEvent.event;
+                if (flagCalib) cal_energy = sortedEvent.cal_energy;
                 tree->Fill();
             }
 
@@ -136,11 +148,11 @@ class CAENV2740Reader {
             }
 
             // timestamp 기준으로 정렬
-            std::sort(eventBuffer.begin(), eventBuffer.end(), [](const CAENV2740Event &a, const CAENV2740Event &b) {
-                if (a.timestamp != b.timestamp) {
-                    return a.timestamp < b.timestamp;
+            std::sort(eventBuffer.begin(), eventBuffer.end(), [](const BufferedEvent &a, const BufferedEvent &b) {
+                if (a.event.timestamp != b.event.timestamp) {
+                    return a.event.timestamp < b.event.timestamp;
                 }
-                return a.fine_timestamp < b.fine_timestamp;
+                return a.event.fine_timestamp < b.event.fine_timestamp;
             });
 
             if (flagVerbose) {
@@ -156,11 +168,12 @@ class CAENV2740Reader {
                 mergedEvent.fine_timestamp.clear();
                 mergedEvent.energy.clear();
                 mergedEvent.energy_short.clear();
+                if (flagCalib) mergedEvent.cal_energy.clear();
                 mergedEvent.flags_low_priority.clear();
                 mergedEvent.flags_high_priority.clear();
                 mergedEvent.event_size.clear();
 
-                const CAENV2740Event &first = eventBuffer[idx];
+                const CAENV2740Event &first = eventBuffer[idx].event;
                 double ref_time_ps = get_abs_time_ps(first.timestamp, first.fine_timestamp);
                 mergedEvent.merged_timestamp = first.timestamp;
                 mergedEvent.merged_fine_timestamp = first.fine_timestamp;
@@ -168,17 +181,19 @@ class CAENV2740Reader {
                 // 윈도우 내에 들어오는 이벤트를 모두 병합
                 size_t j = idx;
                 for (; j < eventBuffer.size(); ++j) {
-                    double cur_time_ps = get_abs_time_ps(eventBuffer[j].timestamp, eventBuffer[j].fine_timestamp);
+                    double cur_time_ps =
+                        get_abs_time_ps(eventBuffer[j].event.timestamp, eventBuffer[j].event.fine_timestamp);
                     if ((cur_time_ps - ref_time_ps) / 1000.0 > timeWindowNs) break;  // ns 단위로 비교
 
-                    mergedEvent.channel.push_back(eventBuffer[j].channel);
-                    mergedEvent.timestamp.push_back(eventBuffer[j].timestamp);
-                    mergedEvent.fine_timestamp.push_back(eventBuffer[j].fine_timestamp);
-                    mergedEvent.energy.push_back(eventBuffer[j].energy);
-                    mergedEvent.energy_short.push_back(eventBuffer[j].energy_short);
-                    mergedEvent.flags_low_priority.push_back(eventBuffer[j].flags_low_priority);
-                    mergedEvent.flags_high_priority.push_back(eventBuffer[j].flags_high_priority);
-                    mergedEvent.event_size.push_back(eventBuffer[j].event_size);
+                    mergedEvent.channel.push_back(eventBuffer[j].event.channel);
+                    mergedEvent.timestamp.push_back(eventBuffer[j].event.timestamp);
+                    mergedEvent.fine_timestamp.push_back(eventBuffer[j].event.fine_timestamp);
+                    mergedEvent.energy.push_back(eventBuffer[j].event.energy);
+                    mergedEvent.energy_short.push_back(eventBuffer[j].event.energy_short);
+                    if (flagCalib) mergedEvent.cal_energy.push_back(eventBuffer[j].cal_energy);
+                    mergedEvent.flags_low_priority.push_back(eventBuffer[j].event.flags_low_priority);
+                    mergedEvent.flags_high_priority.push_back(eventBuffer[j].event.flags_high_priority);
+                    mergedEvent.event_size.push_back(eventBuffer[j].event.event_size);
                 }
 
                 tree->Fill();
@@ -199,6 +214,7 @@ class CAENV2740Reader {
     bool flagSort;          // timestamp 정렬 플래그
     bool flagMerge;         // 이벤트 병합 플래그
     uint64_t timeWindowNs;  // 타임 윈도우 (ns)
+    bool flagCalib;
 
     std::ifstream inputFile;
 
@@ -206,8 +222,22 @@ class CAENV2740Reader {
     TTree *tree;
 
     CAENV2740Event event;
+    double cal_energy = 0.0;
     int totalEventCount;                      // 전체 파일에서 누적된 이벤트 수
-    std::vector<CAENV2740Event> eventBuffer;  // 정렬을 위한 이벤트 버퍼
+
+    struct CalibCoeff {
+        bool has = false;
+        double c0 = 0.0;
+        double c1 = 0.0;
+        double c2 = 0.0;
+    };
+    std::vector<CalibCoeff> calib;  // channel index 기반
+
+    struct BufferedEvent {
+        CAENV2740Event event;
+        double cal_energy = 0.0;
+    };
+    std::vector<BufferedEvent> eventBuffer;  // 정렬/병합을 위한 이벤트 버퍼
 
     // 병합된 이벤트를 위한 구조체
     struct MergedEvent {
@@ -216,6 +246,7 @@ class CAENV2740Reader {
         std::vector<UShort_t> fine_timestamp;
         std::vector<UShort_t> energy;
         std::vector<UShort_t> energy_short;
+        std::vector<Double_t> cal_energy;
         std::vector<UShort_t> flags_low_priority;
         std::vector<UShort_t> flags_high_priority;
         std::vector<UInt_t> event_size;
@@ -228,6 +259,51 @@ class CAENV2740Reader {
         const double FINE_TIMESTAMP_UNIT_PS = 7.8125;
         const double COARSE_TIMESTAMP_UNIT_NS = 8.0;
         return timestamp * COARSE_TIMESTAMP_UNIT_NS * 1000.0 + fine_timestamp * FINE_TIMESTAMP_UNIT_PS;
+    }
+
+    void LoadCalibrationFile(const std::string &filename) {
+        std::ifstream fin(filename);
+        if (!fin) {
+            std::cerr << "칼리브레이션 파일을 열 수 없습니다: " << filename << std::endl;
+            flagCalib = false;
+            return;
+        }
+
+        calib.assign(128, CalibCoeff{});
+        std::string line;
+        int loaded = 0;
+        while (std::getline(fin, line)) {
+            // trim left
+            size_t pos = line.find_first_not_of(" \t\r\n");
+            if (pos == std::string::npos) continue;
+            if (line[pos] == '#') continue;
+
+            std::istringstream iss(line);
+            int ch = -1;
+            double c0 = 0.0, c1 = 0.0, c2 = 0.0;
+            if (!(iss >> ch >> c0 >> c1 >> c2)) continue;
+            if (ch < 0 || ch >= static_cast<int>(calib.size())) continue;
+
+            calib[ch].has = true;
+            calib[ch].c0 = c0;
+            calib[ch].c1 = c1;
+            calib[ch].c2 = c2;
+            loaded++;
+        }
+
+        flagCalib = true;
+        if (flagVerbose) {
+            std::cout << "칼리브레이션 로딩 완료: " << loaded << "개 채널 (" << filename << ")" << std::endl;
+        }
+    }
+
+    double ComputeCalEnergy(uint8_t ch, uint16_t adc) const {
+        if (!flagCalib) return 0.0;
+        if (ch >= calib.size()) return 0.0;
+        const auto &cc = calib[ch];
+        if (!cc.has) return 0.0;
+        const double x = static_cast<double>(adc);
+        return cc.c0 + cc.c1 * x + cc.c2 * x * x;
     }
 
    public:
@@ -254,8 +330,12 @@ class CAENV2740Reader {
 
             // 정렬 옵션이 활성화된 경우 버퍼에 저장, 아니면 바로 트리에 저장
             if (flagSort || flagMerge) {
-                eventBuffer.push_back(event);
+                BufferedEvent be;
+                be.event = event;
+                be.cal_energy = ComputeCalEnergy(event.channel, event.energy);
+                eventBuffer.push_back(be);
             } else {
+                if (flagCalib) cal_energy = ComputeCalEnergy(event.channel, event.energy);
                 tree->Fill();
             }
 
@@ -319,6 +399,8 @@ class CAENV2740Reader {
         event.energy_short = energy_short;
         event.fine_timestamp = fine_timestamp;
         event.energy = energy;
+
+        if (flagCalib) cal_energy = ComputeCalEnergy(event.channel, event.energy);
 
         // 정렬 옵션이 비활성화된 경우에만 바로 트리에 저장
         if (!flagSort && !flagMerge) {
@@ -402,7 +484,10 @@ class CAENV2740Reader {
 
                             // 정렬 옵션이 활성화된 경우 버퍼에 저장, 아니면 바로 트리에 저장
                             if (flagSort || flagMerge) {
-                                eventBuffer.push_back(event);
+                                BufferedEvent be;
+                                be.event = event;
+                                be.cal_energy = ComputeCalEnergy(event.channel, event.energy);
+                                eventBuffer.push_back(be);
                             }
                             // eventParser에서 이미 tree->Fill()을 호출하므로 정렬이 아닌 경우는 추가 호출 불필요
 
@@ -482,17 +567,19 @@ class CAENV2740Reader {
 // main 함수 수정
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        std::cerr << "사용법: ./raw2root <파일 이름1> [<파일 이름2> ...] [-c] [-o <출력 파일 이름>] [-v] [-t] [-m "
-                     "<타임 윈도우(ns)>]"
+        std::cerr << "사용법: ./raw2root <파일 이름1> [<파일 이름2> ...] [-e] [-c <calib.txt>] [-o <출력 파일 이름>] [-v] "
+                     "[-t] [-m <타임 윈도우(ns)>]"
                   << std::endl;
         std::cerr << "  <파일 이름1> [<파일 이름2> ...]: 처리할 raw 파일들 (와일드카드 지원)" << std::endl;
-        std::cerr << "  -c: 인코딩된 이벤트를 읽습니다." << std::endl;
+        std::cerr << "  -e: 인코딩된 이벤트를 읽습니다. (기존 -c는 더 이상 권장하지 않음)" << std::endl;
+        std::cerr << "  -c <calib.txt>: 채널별 에너지 칼리브레이션을 적용하고 cal_energy 브랜치를 추가합니다." << std::endl;
         std::cerr << "  -o <출력 파일 이름>: 출력 파일 이름을 지정합니다." << std::endl;
         std::cerr << "  -v: 상세 출력을 활성화합니다." << std::endl;
         std::cerr << "  -t: timestamp 기준으로 이벤트를 정렬합니다." << std::endl;
         std::cerr << "  -m <타임 윈도우(ns)>: 지정된 시간 윈도우 내의 이벤트를 병합합니다. (정렬 자동 활성화)"
                   << std::endl;
-        std::cerr << "예시: ./raw2root *.raw -c -o combined.root -t" << std::endl;
+        std::cerr << "예시: ./raw2root *.raw -c calib.txt -o combined.root -t" << std::endl;
+        std::cerr << "예시: ./raw2root *.raw -e -o combined.root -t" << std::endl;
         std::cerr << "예시: ./raw2root *.raw -m 1000 -o merged.root (1us 윈도우로 병합)" << std::endl;
         std::cerr << "예시: ./raw2root *.raw -t -m 1000 -o sorted_merged.root (정렬 후 병합)" << std::endl;
         std::cerr << "참고: -m 옵션 사용 시 정렬이 자동으로 활성화됩니다." << std::endl;
@@ -505,11 +592,24 @@ int main(int argc, char *argv[]) {
     bool flagMerge = false;
     uint64_t timeWindowNs = 1000;
     std::string outputFile = "";
+    std::string calibFile = "";
     std::vector<std::string> inputFiles;
 
     // 명령행 인자 파싱
     for (int i = 1; i < argc; i++) {
         if (std::string(argv[i]) == "-c") {
+            // 새 의미: -c <calib.txt>
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                calibFile = argv[i + 1];
+                i++;
+            } else {
+                // 하위호환: 과거 -c (coded event) 지원
+                isCodedEvent = true;
+                if (flagVerbose) {
+                    std::cout << "경고: -c (coded event)는 더 이상 권장하지 않습니다. 대신 -e를 사용하세요." << std::endl;
+                }
+            }
+        } else if (std::string(argv[i]) == "-e") {
             isCodedEvent = true;
         } else if (std::string(argv[i]) == "-o") {
             if (i + 1 < argc) {
@@ -580,10 +680,11 @@ int main(int argc, char *argv[]) {
     }
 
     CAENV2740Reader reader;  // CAENV2740Reader 객체 생성
-    reader.InitOutput(outputFile);
     reader.SetVerbose(flagVerbose);
     reader.SetSort(flagSort);
     reader.SetMerge(flagMerge, timeWindowNs);
+    if (!calibFile.empty()) reader.SetCalibrationFile(calibFile);
+    reader.InitOutput(outputFile);
 
     // 모든 입력 파일 처리
     for (size_t i = 0; i < inputFiles.size(); i++) {
