@@ -203,6 +203,18 @@ install(TARGETS raw2root
 #########################################################################
 
 #########################################################################
+# sort_eventtree: console application for sorting EventTree by timestamp
+#########################################################################
+add_executable(sort_eventtree sort_eventtree.cxx)
+target_include_directories(sort_eventtree PRIVATE /usr/local/include ${ROOT_INCLUDE_DIRS})
+target_link_libraries(sort_eventtree PRIVATE v2740 ${ROOT_LIBRARIES})
+
+install(TARGETS sort_eventtree
+    RUNTIME DESTINATION bin
+)
+#########################################################################
+
+#########################################################################
 # eventBuilder: console application for merging events
 #########################################################################
 # eventBuilder 컴파일 관련 내용 추가
